@@ -1,0 +1,3046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Companion to Spectral Audio Signal Processing — Julius O. Smith III</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
+<style>
+:root {
+  --bg: #0a0b0f;
+  --bg2: #12141c;
+  --bg3: #1a1d2a;
+  --fg: #d4d6e0;
+  --fg-dim: #8a8d9a;
+  --accent: #e8a44a;
+  --accent2: #4a9de8;
+  --accent3: #5ce89a;
+  --accent4: #e85a7a;
+  --accent5: #b06ae8;
+  --border: #2a2d3a;
+  --glow: rgba(232,164,74,0.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{background:var(--bg);color:var(--fg);font-family:'Palatino Linotype','Book Antiqua',Palatino,'Georgia',serif;line-height:1.75;overflow-x:hidden}
+::selection{background:var(--accent);color:var(--bg)}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s}
+a:hover{border-bottom-color:var(--accent)}
+
+header{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2rem;position:relative;overflow:hidden}
+header canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;opacity:.38}
+header .content{position:relative;z-index:1;max-width:860px}
+header h1{font-size:clamp(2rem,5vw,3.3rem);font-weight:300;letter-spacing:.05em;color:var(--accent);text-shadow:0 0 60px rgba(232,164,74,.3);margin-bottom:.5em}
+header h1 em{font-style:italic;color:var(--fg);font-weight:400}
+header .subtitle{font-size:1.1rem;color:var(--fg-dim);max-width:680px;margin:0 auto 2em}
+header .people{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:2em}
+header .people span{font-size:.9rem;color:var(--fg);padding:.4em 1em;border:1px solid var(--border);border-radius:2px;background:rgba(26,29,42,.7)}
+
+nav#toc{position:sticky;top:0;z-index:100;background:rgba(10,11,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.6rem 1rem;overflow-x:auto;white-space:nowrap;text-align:center}
+nav#toc a{display:inline-block;font-size:.8rem;color:var(--fg-dim);padding:.3em .8em;margin:0 .1em;letter-spacing:.04em;text-transform:uppercase;font-family:'Lucida Console',Monaco,monospace;transition:color .2s;border-bottom:none}
+nav#toc a:hover,nav#toc a.active{color:var(--accent)}
+
+section{max-width:900px;margin:0 auto;padding:4rem 1.5rem;border-bottom:1px solid var(--border)}
+section:last-of-type{border-bottom:none}
+h2{font-size:clamp(1.5rem,3vw,2.2rem);font-weight:300;color:var(--accent);margin-bottom:.3em;letter-spacing:.03em}
+h2 .num{font-family:'Lucida Console',Monaco,monospace;font-size:.7em;color:var(--fg-dim);margin-right:.5em}
+h3{font-size:1.2rem;color:var(--accent2);margin:2em 0 .5em;font-weight:400}
+h4{font-size:1rem;color:var(--accent3);margin:1.4em 0 .4em;font-weight:400;font-family:'Lucida Console',Monaco,monospace;letter-spacing:.04em}
+p{margin-bottom:1.2em}
+.lead{font-size:1.05rem;color:var(--fg);margin-bottom:1.5em}
+
+.viz{margin:2em 0;background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.viz canvas{display:block;width:100%;cursor:crosshair}
+.viz-caption{font-size:.8rem;color:var(--fg-dim);padding:.6em 1em;border-top:1px solid var(--border);font-family:'Lucida Console',Monaco,monospace}
+
+.controls{display:flex;flex-wrap:wrap;gap:.8rem;padding:.8em 1em;background:var(--bg3);border-top:1px solid var(--border);align-items:center}
+.controls label{font-size:.78rem;color:var(--fg-dim);font-family:'Lucida Console',Monaco,monospace;display:flex;align-items:center;gap:.4em}
+.controls input[type="range"]{width:120px;accent-color:var(--accent)}
+.controls select{background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:.3em .5em;font-size:.78rem;border-radius:2px;font-family:inherit}
+.controls button,.btn{background:var(--accent);color:var(--bg);border:none;padding:.4em 1em;font-size:.78rem;font-family:'Lucida Console',Monaco,monospace;cursor:pointer;border-radius:2px;letter-spacing:.03em;transition:background .2s}
+.controls button:hover,.btn:hover{background:#f0b860}
+.btn-outline{background:transparent;border:1px solid var(--accent);color:var(--accent)}
+.btn-outline:hover{background:var(--accent);color:var(--bg)}
+
+.math{display:block;text-align:center;padding:1.4em 1.2em;margin:1.5em 0;background:var(--bg2);border-left:3px solid var(--accent);font-size:1.1rem;color:var(--fg);overflow-x:auto;border-radius:0 4px 4px 0}
+.math .katex{font-size:1.2em}
+
+.timeline{position:relative;padding:1em 0 1em 2em;margin:2em 0}
+.timeline::before{content:'';position:absolute;left:.6em;top:0;bottom:0;width:2px;background:var(--border)}
+.timeline-item{position:relative;margin-bottom:1.6em;padding-left:1.5em}
+.timeline-item::before{content:'';position:absolute;left:-1.95em;top:.5em;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.timeline-year{font-family:'Lucida Console',Monaco,monospace;color:var(--accent);font-size:.85rem;margin-bottom:.2em}
+.timeline-text{font-size:.92rem;color:var(--fg-dim)}
+
+blockquote{border-left:3px solid var(--accent5);padding:.8em 1.2em;margin:1.5em 0;color:var(--fg-dim);font-style:italic;background:rgba(176,106,232,.05)}
+blockquote cite{display:block;font-size:.85rem;color:var(--accent5);margin-top:.5em;font-style:normal}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5em;margin:1.5em 0}
+@media(max-width:700px){.grid-2{grid-template-columns:1fr}}
+
+.references{margin-top:2em;padding:1.5em;background:var(--bg2);border:1px solid var(--border);border-radius:4px}
+.references h3{margin-top:0}
+.references ol{padding-left:1.5em}
+.references li{font-size:.85rem;color:var(--fg-dim);margin-bottom:.5em;line-height:1.5}
+.references li em{color:var(--fg)}
+
+footer{text-align:center;padding:3em 1.5em;color:var(--fg-dim);font-size:.85rem;border-top:1px solid var(--border)}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--fg-dim)}
+
+.expandable{margin:1.5em 0;border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.expandable summary{padding:.8em 1.2em;background:var(--bg3);cursor:pointer;font-size:.9rem;color:var(--accent5);font-family:'Lucida Console',Monaco,monospace;letter-spacing:.03em;list-style:none;display:flex;align-items:center;gap:.5em}
+.expandable summary::before{content:'>';font-size:.8em;transition:transform .2s;display:inline-block}
+details[open] summary::before{transform:rotate(90deg)}
+.expandable summary:hover{color:var(--fg)}
+.expandable .inner{padding:1.2em 1.4em;background:rgba(176,106,232,.04)}
+.expandable .inner p{margin-bottom:.8em}
+.expandable .inner p:last-child{margin-bottom:0}
+
+.note{font-size:.85rem;color:var(--fg-dim);margin:1em 0;padding:.6em 1em;border-left:2px solid var(--accent3);background:rgba(92,232,154,.05)}
+.warning{font-size:.85rem;color:var(--fg-dim);margin:1em 0;padding:.6em 1em;border-left:2px solid var(--accent4);background:rgba(232,90,122,.06)}
+.readout{font-family:'Lucida Console',Monaco,monospace;font-size:.78rem;color:var(--fg-dim);padding:.4em 1em;background:var(--bg3);border-top:1px solid var(--border)}
+.readout span{color:var(--accent);margin:0 .3em}
+
+table.spec{width:100%;border-collapse:collapse;margin:1.2em 0;font-size:.88rem}
+table.spec th,table.spec td{padding:.5em .8em;border-bottom:1px solid var(--border);text-align:left}
+table.spec th{color:var(--accent2);font-weight:400;font-family:'Lucida Console',Monaco,monospace;font-size:.8rem}
+table.spec td:first-child{color:var(--fg)}
+
+.xlink{display:inline-block;margin:.2em .4em .2em 0;padding:.25em .7em;font-size:.78rem;border:1px solid var(--border);border-radius:2px;color:var(--fg-dim);font-family:'Lucida Console',Monaco,monospace;letter-spacing:.03em}
+.xlink:hover{color:var(--accent);border-color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- HERO                                                           -->
+<!-- ============================================================ -->
+<header>
+  <canvas id="heroCanvas"></canvas>
+  <div class="content">
+    <h1>Companion to <em>Spectral Audio Signal Processing</em></h1>
+    <p class="subtitle">
+      An interactive guide to Julius O. Smith III's book on parametric spectrum
+      modelling — sinusoidal tracking, spectral envelopes, pitch, reassignment,
+      the chirp-z transform, and linear prediction. Written to sit <em>above</em>
+      the plain STFT and below neural spectrum modelling.
+    </p>
+    <div class="people">
+      <span>Julius O. Smith III</span>
+      <span>McAulay &amp; Quatieri</span>
+      <span>Serra &amp; Smith</span>
+      <span>Auger &amp; Flandrin</span>
+      <span>de Cheveigné &amp; Kawahara</span>
+    </div>
+    <p style="font-size:.85rem;color:var(--fg-dim);margin-bottom:1.2em">
+      Companion to
+      <a href="https://ccrma.stanford.edu/~jos/sasp/" target="_blank">ccrma.stanford.edu/~jos/sasp/</a>
+    </p>
+    <a href="#ch1" class="btn">Begin &#x2193;</a>
+  </div>
+</header>
+
+<!-- ============================================================ -->
+<!-- TOC                                                            -->
+<!-- ============================================================ -->
+<nav id="toc">
+  <a href="#ch1">1 &middot; Prologue</a>
+  <a href="#ch2">2 &middot; STFT refresher</a>
+  <a href="#ch3">3 &middot; Peak interpolation</a>
+  <a href="#ch4">4 &middot; Sinusoidal modelling</a>
+  <a href="#ch5">5 &middot; SMS residuals</a>
+  <a href="#ch6">6 &middot; Spectral envelope</a>
+  <a href="#ch7">7 &middot; Pitch</a>
+  <a href="#ch8">8 &middot; Reassignment</a>
+  <a href="#ch9">9 &middot; Chirp-z</a>
+  <a href="#ch10">10 &middot; Linear prediction</a>
+  <a href="#ch11">11 &middot; Phase vocoder</a>
+  <a href="#ch12">12 &middot; Applications</a>
+  <a href="#ch13">13 &middot; Legacy</a>
+</nav>
+
+<!-- ============================================================ -->
+<!-- CH 1 -- PROLOGUE                                               -->
+<!-- ============================================================ -->
+<section id="ch1">
+  <h2><span class="num">01</span>Prologue &mdash; Why Spectral Audio</h2>
+  <p class="lead">
+    Julius O. Smith's third online book, <em>Spectral Audio Signal Processing</em>
+    (SASP), is not really about the DFT. The DFT is covered in his first book,
+    the STFT in his second. SASP is about everything that <em>follows</em> a spectrum:
+    how to read it, how to parameterise it, how to track its peaks across time, how
+    to model its envelope, how to re-sharpen it after a window has smeared it,
+    and how to synthesise sound from the numbers that come out the other end.
+  </p>
+  <p>
+    This companion walks through SASP chapter by chapter, with live visualisations
+    of every important construction. Each demo is computed in your browser with a
+    hand-written radix-2 FFT and the Web Audio API &mdash; no servers, no
+    dependencies except KaTeX for the mathematics.
+  </p>
+
+  <h3>What SASP adds beyond the earlier books</h3>
+  <p>
+    Smith's four online books form a tower. <em>Mathematics of the DFT</em> (MDFT)
+    builds the bare transform. <em>Introduction to Digital Filters</em> (Filters)
+    builds the LTI machinery. <em>Physical Audio Signal Processing</em> (Physical)
+    builds strings, tubes, rooms. <em>Spectral Audio Signal Processing</em> (SASP)
+    lives in between &mdash; it is the book that answers the question
+    "now that I have a spectrum, what do I <em>do</em> with it?".
+  </p>
+  <table class="spec">
+    <tr><th>Book</th><th>Lives at</th><th>Answers</th></tr>
+    <tr><td>MDFT</td><td>Signal &#8594; transform</td><td>What is a DFT?</td></tr>
+    <tr><td>Filters</td><td>Transform &#8594; LTI design</td><td>How do I shape sound?</td></tr>
+    <tr><td>SASP</td><td>Transform &#8594; parameters</td><td>What is in this spectrum?</td></tr>
+    <tr><td>Physical</td><td>Parameters &#8594; sound</td><td>How do strings and tubes sound?</td></tr>
+  </table>
+
+  <h3>What you should already know</h3>
+  <p>
+    If you have worked through the
+    <a href="https://github.com/BrendanJamesLynskey/STFT_for_Sound" target="_blank">STFT for Sound</a>
+    companion, you are ready. This guide does not re-derive windowing, COLA, or
+    the phase-vocoder phase update &mdash; those sit in the STFT guide. Here we
+    stand above that layer: we assume you already have a spectrogram and we ask
+    what to do with it.
+  </p>
+
+  <div class="note">
+    The hero canvas above is not decoration &mdash; it is the key image of this
+    book. Each bright dot is a sinusoid with a frequency (vertical axis), a time
+    (horizontal axis), and an amplitude (brightness). The trails behind the dots
+    are the <em>tracks</em> that the McAulay&ndash;Quatieri algorithm will draw
+    in chapter 4. Every major chapter of SASP is an answer to a question about
+    those dots.
+  </div>
+
+  <h3>Cross-links to siblings</h3>
+  <p>
+    This companion is one of a family of interactive audio-DSP guides. Links that
+    matter for what follows:
+  </p>
+  <p>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/STFT_for_Sound" target="_blank">STFT_for_Sound</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Wavelets_for_Sound" target="_blank">Wavelets_for_Sound</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Constant_Q_Transform_for_Sound" target="_blank">Constant_Q_Transform_for_Sound</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/MFCC_for_Sound" target="_blank">MFCC_for_Sound</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/MDCT_for_Sound" target="_blank">MDCT_for_Sound</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Sound_Transforms_History" target="_blank">Sound_Transforms_History</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/DDSP_Differentiable_DSP" target="_blank">DDSP_Differentiable_DSP</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/PhaseVocoder" target="_blank">PhaseVocoder</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/MusicalTimeStretchingPitchShifting" target="_blank">MusicalTimeStretchingPitchShifting</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Synth_Additive" target="_blank">Synth_Additive</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Synth_Spectralist" target="_blank">Synth_Spectralist</a>
+  </p>
+  <p>
+    And the sibling Companion repos on the four JOS books:
+  </p>
+  <p>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Companion_JOS_Mathematics_of_the_DFT" target="_blank">Companion_JOS_Mathematics_of_the_DFT</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Companion_JOS_Introduction_to_Digital_Filters" target="_blank">Companion_JOS_Introduction_to_Digital_Filters</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Companion_JOS_Physical_Audio_Signal_Processing" target="_blank">Companion_JOS_Physical_Audio_Signal_Processing</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Companion_JOS_Audio_Signal_Processing_in_Faust" target="_blank">Companion_JOS_Audio_Signal_Processing_in_Faust</a>
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- CH 2 -- STFT REFRESHER (stub, expanded in phase B)             -->
+<!-- ============================================================ -->
+<section id="ch2">
+  <h2><span class="num">02</span>STFT Refresher &mdash; What Peaks Look Like</h2>
+  <p class="lead">
+    The STFT turns a signal into a grid of complex numbers. For parametric
+    modelling we care about <em>peaks</em> in the log-magnitude of each frame,
+    because peaks are where sinusoids live. This chapter is a refresher with a
+    specifically parametric eye; the mechanics of windowing and hop sizing are
+    covered in full in the
+    <a href="https://github.com/BrendanJamesLynskey/STFT_for_Sound" target="_blank">STFT_for_Sound</a>
+    companion.
+  </p>
+
+  <h3>The single-sinusoid picture</h3>
+  <p>
+    When you compute the DFT of a windowed pure tone, you do not see a delta
+    function &mdash; you see the <em>window's Fourier transform shifted to the
+    tone's frequency</em>. Every window has a characteristic mainlobe width (which
+    controls the minimum resolvable frequency spacing), and a characteristic
+    sidelobe level (which controls how much a strong sinusoid can mask a weak one
+    nearby).
+  </p>
+  <div class="math">
+    $$X_w[k] \;\approx\; \tfrac{A}{2}\, W\!\left(\omega_k - \omega_0\right) e^{j\phi_0}
+    \;+\; \tfrac{A}{2}\, W\!\left(\omega_k + \omega_0\right) e^{-j\phi_0}$$
+  </div>
+  <p>
+    When the two copies of $W$ do not overlap appreciably, the positive-frequency
+    peak is a clean image of $W$. Parametric methods exploit that: they fit a
+    known mainlobe shape to the few bins around the peak and read off the
+    parameters $(A, \omega_0, \phi_0)$ directly.
+  </p>
+
+  <h3>Interactive: window library with parametric readouts</h3>
+  <div class="viz">
+    <canvas id="winLib" height="320" style="height:320px"></canvas>
+    <div class="controls">
+      <label>Window
+        <select id="wlSel">
+          <option value="rect">Rectangular</option>
+          <option value="hann" selected>Hann</option>
+          <option value="hamming">Hamming</option>
+          <option value="blackman">Blackman</option>
+          <option value="blackmanharris">Blackman&ndash;Harris (4-term)</option>
+          <option value="flattop">Flat-top</option>
+          <option value="gaussian">Gaussian</option>
+          <option value="kaiser">Kaiser (&beta;=6)</option>
+        </select>
+      </label>
+      <label>Length <input type="range" id="wlLen" min="32" max="512" value="128" step="16"> <span id="wlLenVal">128</span></label>
+      <label>Zero-pad &times; <input type="range" id="wlZP" min="1" max="16" value="8" step="1"> <span id="wlZPVal">8</span></label>
+    </div>
+    <div class="readout" id="wlRead">&middot;&middot;&middot;</div>
+    <div class="viz-caption">Left: window in time. Right: zero-padded FFT magnitude in dB. Readout reports main-lobe 6 dB width, highest sidelobe, and scalloping loss &mdash; the three numbers that decide whether a window is good for parametric extraction.</div>
+  </div>
+
+  <h3>Zero-padding and the interpolation illusion</h3>
+  <p>
+    Zero-padding the time signal before the FFT does not add information; it
+    interpolates the existing transform. But interpolation is exactly what we
+    want for peak estimation &mdash; it lets the DFT samples land closer to the
+    true peak. A factor of 4 or 8 is usually plenty, because after that the
+    parabolic interpolation trick (next chapter) is more efficient than brute
+    zero-padding.
+  </p>
+
+  <div class="note">
+    The important lesson: a "good window for parametric extraction" is one
+    whose mainlobe is close to a parabola in dB near the peak. Hann, Hamming,
+    and Blackman all qualify; Rectangular does not.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CH 3 -- QUADRATIC PEAK INTERPOLATION                           -->
+<!-- ============================================================ -->
+<section id="ch3">
+  <h2><span class="num">03</span>Quadratic Peak Interpolation</h2>
+  <p class="lead">
+    You have a DFT frame. A sinusoid is in there somewhere near bin $k^\star$,
+    the bin of the highest magnitude. But the true frequency is almost certainly
+    <em>between</em> bins &mdash; you need a sub-bin estimate. The standard
+    industrial trick, taught in SASP and used in every serious sinusoidal
+    analyser, is a three-point parabolic fit in dB around the peak.
+  </p>
+
+  <h3>The formula</h3>
+  <p>
+    Let $a = 20\log_{10}|X[k^\star{-}1]|$, $b = 20\log_{10}|X[k^\star]|$, and
+    $c = 20\log_{10}|X[k^\star{+}1]|$. Fit a parabola through those three dB
+    values and find its maximum. The offset from the centre bin is
+  </p>
+  <div class="math">
+    $$\delta \;=\; \frac{1}{2}\,\frac{a - c}{a - 2b + c}\;\in\;[-\tfrac12,\tfrac12]$$
+  </div>
+  <p>
+    and the interpolated peak value in dB is
+  </p>
+  <div class="math">
+    $$\hat b \;=\; b \;-\; \tfrac{1}{4}(a-c)\,\delta.$$
+  </div>
+  <p>
+    The true frequency estimate is $\hat\omega = \omega_{k^\star} + \delta \cdot (2\pi/N)$
+    radians/sample, and the true amplitude estimate is $10^{\hat b / 20}$ after
+    correcting for the window gain.
+  </p>
+
+  <details class="expandable">
+    <summary>Why dB, not linear, not squared?</summary>
+    <div class="inner">
+      <p>
+        A parabola is a quadratic; it fits any smooth local maximum to second
+        order in a Taylor expansion. The question is which vertical axis makes
+        the second-order approximation most accurate. Abe and Smith showed (2004)
+        that for the usual windows &mdash; Hann, Hamming, Blackman, Gaussian
+        &mdash; the mainlobe shape on a dB axis is very close to parabolic; the
+        residual second-order error is tiny. On a linear or squared axis the
+        mainlobe is much less parabolic, so a linear parabolic fit leaves
+        systematic bias of several percent of a bin.
+      </p>
+      <p>
+        The Gaussian window is special: its mainlobe is <em>exactly</em> a
+        parabola on a dB axis, so parabolic interpolation is exact (apart from
+        the sidelobe-overlap bias below). This is one reason Serra's SMS analyser
+        uses a Gaussian-like window.
+      </p>
+    </div>
+  </details>
+
+  <h3>Abe and Smith's bias</h3>
+  <p>
+    The estimator above is biased for two reasons, both discussed in detail in
+    SASP. First, the mainlobe on a dB axis is only <em>approximately</em>
+    parabolic; the residual third-derivative shape introduces a small bias that
+    depends on the offset. Second, the negative-frequency image of the same
+    sinusoid leaks a little energy into the positive-frequency peak &mdash; more
+    for short windows, less for long ones &mdash; which skews the three-point
+    estimate slightly towards DC.
+  </p>
+  <p>
+    For a Hann window of length $L$ at a tone of digital frequency $\omega_0$,
+    the bias is roughly
+  </p>
+  <div class="math">
+    $$\Delta\omega \;\approx\; -\frac{C}{L^{\,2}\,\omega_0}$$
+  </div>
+  <p>
+    for a small constant $C$ that depends on the window. In practice the bias
+    is below $10^{-3}$ bins for $L \ge 1024$ and any audio frequency. Parabolic
+    interpolation is overwhelmingly the right tool.
+  </p>
+
+  <h3>Interactive: click any peak to see the estimate</h3>
+  <div class="viz">
+    <canvas id="qpi" height="360" style="height:360px"></canvas>
+    <div class="controls">
+      <label>True frequency (bins)
+        <input type="range" id="qpiF" min="20" max="80" value="34.37" step="0.01">
+        <span id="qpiFVal">34.37</span>
+      </label>
+      <label>Amplitude
+        <input type="range" id="qpiA" min="0.2" max="1" value="0.8" step="0.01">
+        <span id="qpiAVal">0.80</span>
+      </label>
+      <label>Window
+        <select id="qpiW">
+          <option value="rect">Rectangular</option>
+          <option value="hann" selected>Hann</option>
+          <option value="hamming">Hamming</option>
+          <option value="blackman">Blackman</option>
+          <option value="gaussian">Gaussian</option>
+        </select>
+      </label>
+      <label>Length
+        <select id="qpiL">
+          <option value="128">128</option>
+          <option value="256" selected>256</option>
+          <option value="512">512</option>
+          <option value="1024">1024</option>
+        </select>
+      </label>
+      <label>Noise <input type="range" id="qpiN" min="0" max="0.3" value="0.02" step="0.005"> <span id="qpiNVal">0.02</span></label>
+    </div>
+    <div class="readout" id="qpiRead">&middot;&middot;&middot;</div>
+    <div class="viz-caption">Blue stems: DFT magnitude in dB. Orange curve: parabola fitted through three highest bins. Dashed vertical: true frequency. Dotted vertical: raw-bin estimate. Solid orange: parabolic estimate.</div>
+  </div>
+
+  <div class="note">
+    Move the frequency slider slowly and watch the raw-bin estimate jump by a
+    whole bin at a time while the parabolic estimate tracks continuously. This
+    is why every sinusoidal analyser from McAulay&ndash;Quatieri onward uses
+    quadratic interpolation rather than arg-max alone.
+  </div>
+
+  <h3>Phase interpolation</h3>
+  <p>
+    Amplitude and frequency are not the only parameters you can read from a
+    mainlobe; the phase at the true peak is recoverable too. With the same
+    three-bin fit, the interpolated phase is obtained by evaluating the linear
+    fit of the two <em>complex</em> bin values at the interpolated frequency
+    &mdash; effectively
+  </p>
+  <div class="math">
+    $$\hat\phi \;=\; \arg X[k^\star] \;+\; \delta\cdot\bigl(\arg X[k^\star+1] - \arg X[k^\star-1]\bigr)/2,$$
+  </div>
+  <p>
+    with the usual care about phase unwrapping. This is the third parameter
+    $(A,\,\omega,\,\phi)$ that sinusoidal modelling needs per peak per frame.
+  </p>
+</section>
+<!-- ============================================================ -->
+<!-- CH 4 -- SINUSOIDAL MODELLING (MQ)                              -->
+<!-- ============================================================ -->
+<section id="ch4">
+  <h2><span class="num">04</span>Sinusoidal Modelling &mdash; McAulay &amp; Quatieri</h2>
+  <p class="lead">
+    In 1986 Robert J. McAulay and Thomas F. Quatieri, working at MIT Lincoln
+    Laboratory on a military speech coder, published the paper that started a
+    branch of audio DSP. <em>Speech Analysis/Synthesis Based on a Sinusoidal
+    Representation</em> (IEEE ASSP 34(4), 744&ndash;754) proposes that any
+    voiced speech signal can be well approximated by a short, rapidly
+    time-varying sum of sinusoids:
+  </p>
+  <div class="math">
+    $$\hat s(n) \;=\; \sum_{p=1}^{P(n)} A_p(n)\,\cos\!\bigl(\phi_p(n)\bigr).$$
+  </div>
+  <p>
+    The parameters $\{A_p(n), \phi_p(n)\}$ evolve smoothly in time along
+    <em>tracks</em>. A track is born at some frame, lives for a while, and
+    dies when it can no longer be matched. The analysis stage turns a signal
+    into a list of tracks; the synthesis stage turns a list of tracks back
+    into a signal.
+  </p>
+
+  <h3>The analysis pipeline</h3>
+  <ol style="margin-left:1.5em;color:var(--fg-dim);font-size:.95rem;line-height:1.8">
+    <li>Take a windowed DFT at frame $m$ (hop $H$).</li>
+    <li>Pick the local maxima of the log-magnitude spectrum.</li>
+    <li>For each peak, use quadratic interpolation to estimate $(A_p, \omega_p, \phi_p)$.</li>
+    <li>Match peaks in frame $m+1$ to tracks alive at frame $m$.</li>
+    <li>Unmatched tracks die; unmatched peaks give birth to new tracks.</li>
+  </ol>
+
+  <h3>The matching rule</h3>
+  <p>
+    McAulay and Quatieri match greedily by frequency proximity, with a threshold
+    $\Delta$ in Hz. Given the frequencies $\{\omega_i^{(m)}\}$ at frame $m$ and
+    $\{\omega_j^{(m+1)}\}$ at frame $m+1$, a track $i$ is continued by the
+    frame-$m{+}1$ peak $j$ that minimises $|\omega_i - \omega_j|$ subject to
+    $|\omega_i - \omega_j| < \Delta$. Peaks inside $\Delta$ without a free
+    partner are birthed; tracks with no match within $\Delta$ are killed.
+  </p>
+  <div class="math">
+    $$\text{match}(i) \;=\; \arg\min_{j} |\omega_i^{(m)} - \omega_j^{(m+1)}|,
+      \qquad |\omega_i^{(m)} - \omega_j^{(m+1)}| < \Delta$$
+  </div>
+  <p>
+    The threshold $\Delta$ is usually a few Hz per ms of hop; the exact number is
+    less important than the fact that one exists. The original MQ paper uses
+    about $\Delta \approx 0.5$ semitones, i.e.\ about 3&ndash;5% of the
+    frequency value.
+  </p>
+
+  <h3>The synthesis stage &mdash; phase-continuous oscillator interpolation</h3>
+  <p>
+    Between adjacent frames a track has a known frequency, amplitude, and phase
+    at each end. The synthesiser must produce samples that match those two
+    end-point conditions and keep the phase continuous, i.e.\ the derivative
+    of phase should be smooth across the frame boundary. McAulay and Quatieri
+    chose a <em>cubic</em> phase polynomial: amplitude is linearly interpolated
+    between frames, phase is a cubic whose value and derivative at the two ends
+    match $\phi_p$ and $\omega_p$:
+  </p>
+  <div class="math">
+    $$\tilde\phi(t) \;=\; \phi_m \;+\; \omega_m\,t \;+\; \alpha\, t^2 \;+\; \beta\, t^3$$
+  </div>
+  <p>
+    with $(\alpha,\beta)$ chosen uniquely so that $\tilde\phi(H) \equiv \phi_{m+1} \pmod{2\pi}$
+    and $\tilde\phi'(H) = \omega_{m+1}$. The phase-unwrap step that resolves the
+    integer ambiguity in $\phi_{m+1}$ is the MQ analogue of the phase-vocoder
+    princarg update; SASP gives the closed form.
+  </p>
+
+  <h3>Interactive: MQ track visualiser</h3>
+  <p>
+    The flagship demo. Pick a signal and watch the peak-picking and the track
+    continuation. Each track is a coloured polyline in the time-frequency plane;
+    the line breaks where the track dies. Toggle the match threshold and see
+    tracks merge, fragment, or disappear entirely. Switch to the audio panel
+    and resynthesise from the tracks &mdash; with cubic-phase interpolation the
+    resynthesis is indistinguishable from the original for stationary voiced
+    signals; with piecewise-linear phase you hear characteristic artefacts.
+  </p>
+  <div class="viz">
+    <canvas id="mq" height="420" style="height:420px"></canvas>
+    <div class="controls">
+      <label>Signal
+        <select id="mqSig">
+          <option value="voice" selected>Voiced vowel</option>
+          <option value="piano">Piano note (harmonics)</option>
+          <option value="chord">Chord (three voices)</option>
+          <option value="vibrato">Voice with vibrato</option>
+        </select>
+      </label>
+      <label>Match &Delta; (Hz)
+        <input type="range" id="mqDel" min="5" max="120" value="40" step="1">
+        <span id="mqDelVal">40</span>
+      </label>
+      <label>Peak floor (dB)
+        <input type="range" id="mqFlo" min="-80" max="-20" value="-50" step="1">
+        <span id="mqFloVal">-50</span>
+      </label>
+      <label>Frame length
+        <select id="mqL">
+          <option value="512">512</option>
+          <option value="1024" selected>1024</option>
+          <option value="2048">2048</option>
+        </select>
+      </label>
+      <button id="mqPlayO">&#9834; Original</button>
+      <button id="mqPlayR">&#9834; Resynth</button>
+      <button id="mqPlayD">&#9834; Residual</button>
+    </div>
+    <div class="readout" id="mqRead">&middot;&middot;&middot;</div>
+    <div class="viz-caption">Top: spectrogram. Bottom: MQ tracks in the time-frequency plane &mdash; each colour is one track. Change &Delta; to see birth/death behaviour shift.</div>
+  </div>
+
+  <div class="note">
+    Birth/death in MQ tracking is the visual echo of the hero canvas at the top
+    of this page. Each bright dot up there is a peak in one frame; the trail it
+    leaves is a track.
+  </div>
+</section>
+<!-- ============================================================ -->
+<!-- CH 5 -- SMS: Sinusoids + Residual                              -->
+<!-- ============================================================ -->
+<section id="ch5">
+  <h2><span class="num">05</span>Spectrum Modelling with Residuals &mdash; SMS</h2>
+  <p class="lead">
+    Pure sinusoidal modelling works beautifully for stationary pitched sounds, but it
+    has nothing to say about breath, bow noise, hammer thuds, cymbal hash, or the
+    hiss of a held $/s/$. In 1990 Xavier Serra &mdash; then Smith's PhD student at
+    CCRMA &mdash; published <em>Spectral Modeling Synthesis: A Sound
+    Analysis/Synthesis System Based on a Deterministic plus Stochastic
+    Decomposition</em>, extending MQ by explicitly separating signals into a
+    sinusoidal <em>deterministic</em> part and a noise-like <em>stochastic</em>
+    part.
+  </p>
+
+  <div class="math">
+    $$s(n) \;=\; \underbrace{\sum_{p=1}^{P} A_p(n)\,\cos\phi_p(n)}_{\text{deterministic}}
+          \;+\; \underbrace{e(n)}_{\text{residual}}.$$
+  </div>
+
+  <h3>How SMS estimates the residual</h3>
+  <p>
+    The deterministic part is exactly McAulay&ndash;Quatieri: track-based
+    sinusoidal resynthesis. The residual $e(n) = s(n) - \hat s(n)$ in the time
+    domain is then analysed separately. Serra observes that for musical signals
+    $e(n)$ is very well modelled as filtered noise: a coloured random process
+    whose short-time spectral envelope can be sampled at the same frame rate as
+    the sinusoids. Synthesis becomes deterministic-cosine-bank plus
+    filtered-white-noise convolution.
+  </p>
+  <p>
+    The residual envelope can be estimated by smoothing $|E(m,k)|$ along $k$
+    with a moving average, or equivalently by fitting a low-order cepstral or
+    LPC envelope to the residual's log-magnitude. SMS uses line-segment
+    approximations; more recent systems use LPC or the true envelope from the
+    next chapter.
+  </p>
+
+  <h3>Interactive: deterministic vs stochastic</h3>
+  <div class="viz">
+    <canvas id="sms" height="360" style="height:360px"></canvas>
+    <div class="controls">
+      <label>Signal
+        <select id="smsSig">
+          <option value="voice" selected>Voiced vowel</option>
+          <option value="piano">Piano note</option>
+          <option value="breath">Breath + tone</option>
+        </select>
+      </label>
+      <label>Sinusoids kept <input type="range" id="smsP" min="5" max="60" value="20" step="1"> <span id="smsPVal">20</span></label>
+      <button id="smsO">&#9834; Original</button>
+      <button id="smsD">&#9834; Deterministic</button>
+      <button id="smsS">&#9834; Stochastic</button>
+    </div>
+    <div class="readout" id="smsRead">&middot;&middot;&middot;</div>
+    <div class="viz-caption">Top: original spectrogram. Middle: deterministic-only spectrogram (bank-of-sinusoids). Bottom: residual spectrogram.</div>
+  </div>
+
+  <div class="note">
+    The ratio of sinusoidal energy to residual energy is a powerful diagnostic
+    for musical timbre. A pure flute sits near 100% deterministic; a cymbal sits
+    near 0%; a voiced vowel with breath sits at roughly 70&ndash;80%. SMS was
+    one of the first analysis systems that could <em>measure</em> this ratio
+    continuously in time, and it influenced every later CASA system.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CH 6 -- SPECTRAL ENVELOPE                                      -->
+<!-- ============================================================ -->
+<section id="ch6">
+  <h2><span class="num">06</span>Spectral Envelope Estimation</h2>
+  <p class="lead">
+    A harmonic sound has a <em>fine structure</em> (the comb of harmonics at
+    multiples of $f_0$) and an <em>envelope</em> (the smooth curve that the
+    harmonic tips sit on). The envelope encodes the timbre &mdash; the vocal
+    tract filter, the body of an instrument, the resonance of a room. Three
+    classical methods for estimating it are covered in SASP.
+  </p>
+
+  <h3>Cepstral liftering</h3>
+  <p>
+    The cepstrum is the IDFT of the log-magnitude spectrum. Fine structure has
+    rapid variation across frequency &mdash; high-quefrency cepstrum &mdash;
+    while the envelope has slow variation &mdash; low-quefrency cepstrum.
+    "Liftering" (filtering in cepstrum domain) keeps only the lowest $Q$
+    quefrency bins and discards the rest.
+  </p>
+  <div class="math">
+    $$\text{envelope}(k) \;=\; \exp\!\bigl(\mathrm{DFT}\bigl[c_n \cdot \mathbb{1}_{|n| \le Q}\bigr]\bigr)$$
+  </div>
+  <p>
+    The cepstral envelope is very cheap, but it tends to under-shoot formant
+    peaks because harmonic peaks and valleys average out equally.
+  </p>
+
+  <h3>True envelope (R&oum;bel &amp; Rodet)</h3>
+  <p>
+    Iteratively take the cepstral envelope, then replace any spectral value
+    below the envelope by the envelope itself; repeat. This "cepstral
+    discriminator" converges to the envelope that touches the harmonic peaks
+    from above &mdash; the <em>true envelope</em>. R&oumL;bel and Rodet (2005)
+    proved convergence; the method is now a standard feature in tools like
+    SuperVP, World, and phase-vocoder pitch shifters that need to preserve
+    formants.
+  </p>
+
+  <h3>Linear prediction (LPC)</h3>
+  <p>
+    A different route. Assume the signal is the output of an all-pole filter
+    driven by white noise (or a pulse train). Find the filter coefficients
+    $\{a_1,\dots,a_p\}$ that minimise the one-step prediction error
+  </p>
+  <div class="math">
+    $$e(n) \;=\; x(n) + \sum_{i=1}^{p} a_i\, x(n-i).$$
+  </div>
+  <p>
+    The squared filter response $|1/A(e^{j\omega})|^2$ is then the LPC
+    spectrum, and its peaks are the formants. LPC is historically the workhorse
+    of speech coding (Atal &amp; Schroeder at Bell Labs, Itakura &amp; Saito at
+    NTT, Markel &amp; Gray), and it is still used inside most modern vocoders.
+    The Levinson&ndash;Durbin recursion that solves for the $a_i$ in
+    $\mathcal{O}(p^2)$ appears in chapter 10.
+  </p>
+
+  <h3>Interactive: LPC order slider on a vowel</h3>
+  <div class="viz">
+    <canvas id="envLPC" height="340" style="height:340px"></canvas>
+    <div class="controls">
+      <label>Vowel
+        <select id="envV">
+          <option value="a" selected>/a/ (dah)</option>
+          <option value="i">/i/ (ee)</option>
+          <option value="u">/u/ (oo)</option>
+        </select>
+      </label>
+      <label>LPC order p
+        <input type="range" id="envP" min="4" max="40" value="14" step="1">
+        <span id="envPVal">14</span>
+      </label>
+      <label>Show
+        <select id="envShow">
+          <option value="lpc" selected>LPC only</option>
+          <option value="cep">Cepstral only</option>
+          <option value="both">LPC + cepstral</option>
+        </select>
+      </label>
+    </div>
+    <div class="readout" id="envRead">&middot;&middot;&middot;</div>
+    <div class="viz-caption">Blue: DFT magnitude (dB). Orange: LPC envelope. Green: cepstral envelope. Red ticks: formant peaks detected on the LPC envelope.</div>
+  </div>
+</section>
+<!-- ============================================================ -->
+<!-- CH 7 -- PITCH ESTIMATION                                       -->
+<!-- ============================================================ -->
+<section id="ch7">
+  <h2><span class="num">07</span>Pitch Estimation</h2>
+  <p class="lead">
+    Pitch is one of the oldest problems in audio DSP. SASP covers the three
+    main families: autocorrelation in the time domain, cepstrum in the
+    quefrency domain, and the modern difference-function family (YIN). Each
+    family decides which samples of the signal look most like copies of each
+    other at lag $T_0$.
+  </p>
+
+  <h3>Autocorrelation</h3>
+  <div class="math">
+    $$r(\tau) \;=\; \sum_{n=0}^{L-1-\tau} x(n)\,x(n+\tau)$$
+  </div>
+  <p>
+    A periodic signal at period $T_0$ has a peak at $\tau = T_0$. Find the
+    highest peak away from $\tau = 0$. Cheap and effective for clean pitched
+    signals; fails on octave confusion when the signal has weak fundamental or
+    strong partial.
+  </p>
+
+  <h3>Cepstrum</h3>
+  <p>
+    The cepstrum of a voiced sound has a spike at quefrency $T_0$ &mdash; the
+    period of the harmonic comb in the log-magnitude spectrum. Noll proposed it
+    in 1967 and it remained the standard speech pitch tracker into the 1990s.
+    Picks the right octave more reliably than autocorrelation.
+  </p>
+
+  <h3>YIN &mdash; de Cheveign&eacute; &amp; Kawahara (2002)</h3>
+  <p>
+    The pitch tracker inside most modern audio software. YIN defines the
+    <em>difference function</em>
+  </p>
+  <div class="math">
+    $$d(\tau) \;=\; \sum_{n=0}^{L-1-\tau} \bigl(x(n) - x(n+\tau)\bigr)^{2}$$
+  </div>
+  <p>
+    which is zero at $\tau = T_0$ for a perfect periodic signal. For real
+    signals it has a deep local minimum there. The second YIN insight is the
+    <em>cumulative mean normalised difference function</em>
+  </p>
+  <div class="math">
+    $$d'(\tau) \;=\; \begin{cases} 1 & \tau = 0\\[3pt]
+      \dfrac{d(\tau)}{\frac{1}{\tau}\sum_{j=1}^{\tau} d(j)} & \tau > 0\end{cases}$$
+  </div>
+  <p>
+    which starts at 1 and dips well below 1 at true periods. Pick the smallest
+    $\tau$ for which $d'(\tau)$ falls below an absolute threshold (typically
+    $0.1$), and parabolically interpolate around it. YIN's robustness against
+    noise and octave errors made it the de-facto standard, and it underlies the
+    pitch trackers in Ardour, Ableton Live's Melodyne-like tools, Audacity's
+    pitch-detect plugin, and the <code>librosa.pyin</code> default.
+  </p>
+
+  <h3>Interactive: YIN on a pitched signal with noise</h3>
+  <div class="viz">
+    <canvas id="yin" height="360" style="height:360px"></canvas>
+    <div class="controls">
+      <label>Frequency (Hz)
+        <input type="range" id="yinF" min="80" max="800" value="220" step="1">
+        <span id="yinFVal">220</span>
+      </label>
+      <label>SNR (dB)
+        <input type="range" id="yinS" min="-10" max="40" value="20" step="1">
+        <span id="yinSVal">20</span>
+      </label>
+      <label>Threshold
+        <input type="range" id="yinT" min="0.05" max="0.4" value="0.10" step="0.01">
+        <span id="yinTVal">0.10</span>
+      </label>
+      <button id="yinPlay">&#9834; Listen</button>
+    </div>
+    <div class="readout" id="yinRead">&middot;&middot;&middot;</div>
+    <div class="viz-caption">Top: raw difference function d(&tau;). Bottom: cumulative normalised d'(&tau;) with threshold line. Orange vertical: detected period.</div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CH 8 -- TIME-FREQUENCY REASSIGNMENT                            -->
+<!-- ============================================================ -->
+<section id="ch8">
+  <h2><span class="num">08</span>Time&ndash;Frequency Reassignment</h2>
+  <p class="lead">
+    A spectrogram cell is wide in time and wide in frequency &mdash; the
+    Heisenberg&ndash;Gabor box. The energy that falls inside that cell is
+    <em>not</em> uniformly distributed across the cell; for a single sinusoid,
+    all of it is concentrated at a single point. Reassignment is a standard
+    post-processing trick that moves each spectrogram pixel to the centre of
+    gravity of its energy, producing a far sharper picture without changing the
+    underlying FFTs.
+  </p>
+
+  <h3>Kodera, Gendrin, de Villedary (1976)</h3>
+  <p>
+    Kodera and colleagues proposed the principle in a 1976 paper on geophysical
+    signal analysis: move each spectrogram value from its grid cell
+    $(t_m, \omega_k)$ to the reassigned position
+  </p>
+  <div class="math">
+    $$(\hat t, \hat\omega) \;=\; \bigl(t_m - \Re\{\partial_\omega \log X\},\,
+                                      \omega_k + \Im\{\partial_t \log X\}\bigr).$$
+  </div>
+
+  <h3>Auger and Flandrin (1995)</h3>
+  <p>
+    Patrick Flandrin and his student Fran&ccedil;ois Auger gave the closed-form
+    discrete version, which is cheap to compute. Given the STFT with window
+    $w$, you also compute two "helper" STFTs: one with window $t\,w(t)$ (time
+    ramp), and one with window $w'(t)$ (window derivative). The reassignment
+    coordinates are
+  </p>
+  <div class="math">
+    $$\hat t \;=\; t_m + \Re\!\left\{\frac{X_{tw}(t_m,\omega_k)}{X_{w}(t_m,\omega_k)}\right\},\qquad
+      \hat\omega \;=\; \omega_k - \Im\!\left\{\frac{X_{w'}(t_m,\omega_k)}{X_{w}(t_m,\omega_k)}\right\}.$$
+  </div>
+  <p>
+    For a single chirp, reassignment turns the smeared spectrogram into an
+    almost pixel-perfect line, and for a bell it turns the smeared striae into
+    tight clusters at the partials. The cost is a loss of interpretability for
+    mixed regions &mdash; where a sinusoid and an impulse overlap, reassigned
+    pixels can go in both directions.
+  </p>
+
+  <h3>Interactive: reassigned spectrogram on chirp + bell</h3>
+  <div class="viz">
+    <canvas id="reass" height="420" style="height:420px"></canvas>
+    <div class="controls">
+      <label>Signal
+        <select id="rSig">
+          <option value="chirp" selected>Linear chirp</option>
+          <option value="bell">Bell-like partials</option>
+          <option value="both">Chirp + bell + impulse</option>
+        </select>
+      </label>
+      <label>Frame length
+        <select id="rL">
+          <option value="256">256</option>
+          <option value="512" selected>512</option>
+          <option value="1024">1024</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="rOn" checked> Reassign</label>
+    </div>
+    <div class="viz-caption">Top: ordinary spectrogram. Bottom: reassigned spectrogram computed with the Auger-Flandrin formulas using three STFTs.</div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CH 9 -- CHIRP-Z TRANSFORM                                      -->
+<!-- ============================================================ -->
+<section id="ch9">
+  <h2><span class="num">09</span>The Chirp-Z Transform</h2>
+  <p class="lead">
+    The DFT samples $H(z)$ on the unit circle at $N$ equally spaced angles. The
+    chirp-z transform (Rader, Schafer &amp; Rabiner 1969, building on Rader
+    1968) samples $H(z)$ on an <em>arbitrary spiral</em> starting at any point
+    and stepping by any complex ratio. This lets you zoom into a narrow
+    frequency band of an FIR filter, or evaluate the filter's response on a
+    near-unit-circle contour to inspect pole damping &mdash; things the plain
+    FFT cannot do without enormous zero-padding.
+  </p>
+
+  <div class="math">
+    $$X_k \;=\; \sum_{n=0}^{N-1} x(n)\,A^{-n} W^{nk},\qquad k=0,\ldots,M-1,$$
+  </div>
+  <p>
+    where $A = A_0 e^{j\theta_0}$ is the start point and $W = W_0 e^{j\phi_0}$
+    is the step. For $A_0 = 1$, $\theta_0 = 0$, $W_0 = 1$, $\phi_0 = 2\pi/N$
+    you recover the DFT.
+  </p>
+
+  <h3>Why it matters</h3>
+  <p>
+    Bluestein (1970) showed that $X_k$ above can be computed by three FFTs of
+    length $\ge N + M - 1$. That makes the chirp-z transform practical, and it
+    is how modern software evaluates a single narrow band of a spectrum at
+    arbitrary resolution &mdash; think of the high-resolution zooming on a DAW
+    spectrum analyser around a harmonic of a kick drum.
+  </p>
+
+  <h3>Interactive: pick a spiral, see the zoomed spectrum</h3>
+  <div class="viz">
+    <canvas id="czt" height="380" style="height:380px"></canvas>
+    <div class="controls">
+      <label>Centre (Hz)
+        <input type="range" id="czF" min="200" max="4000" value="800" step="10">
+        <span id="czFVal">800</span>
+      </label>
+      <label>Span (Hz)
+        <input type="range" id="czW" min="20" max="2000" value="200" step="10">
+        <span id="czWVal">200</span>
+      </label>
+      <label>Radius
+        <input type="range" id="czR" min="0.85" max="1.05" value="1" step="0.005">
+        <span id="czRVal">1.000</span>
+      </label>
+    </div>
+    <div class="readout" id="czRead">&middot;&middot;&middot;</div>
+    <div class="viz-caption">Left: the z-plane with unit circle and the chosen spiral contour. Right: full DFT of the signal in dB (blue) with the CZT-zoomed slice (orange) plotted on top. Move the span slider to the left to see the chirp-z's fine resolution over the narrow band.</div>
+  </div>
+</section>
+<!-- ============================================================ -->
+<!-- CH 10 -- LINEAR PREDICTION                                     -->
+<!-- ============================================================ -->
+<section id="ch10">
+  <h2><span class="num">10</span>Linear Prediction &mdash; Levinson and the Lossless Tube</h2>
+  <p class="lead">
+    Linear prediction is such a central tool in audio DSP that SASP devotes a
+    full chapter to it separately from the envelope-estimation use in chapter 6.
+    Three ideas interlock: the Yule&ndash;Walker normal equations, the
+    $\mathcal{O}(p^2)$ Levinson&ndash;Durbin recursion, and the lossless
+    acoustic-tube interpretation of the reflection coefficients.
+  </p>
+
+  <h3>The normal equations</h3>
+  <p>
+    Minimising $E = \sum e(n)^2$ by setting $\partial E/\partial a_i = 0$ gives
+    the Toeplitz system
+  </p>
+  <div class="math">
+    $$\begin{pmatrix} r(0) & r(1) & \cdots & r(p-1) \\
+                      r(1) & r(0) & \cdots & r(p-2) \\
+                      \vdots & & \ddots & \vdots \\
+                      r(p-1) & r(p-2) & \cdots & r(0) \end{pmatrix}
+      \begin{pmatrix} a_1 \\ a_2 \\ \vdots \\ a_p \end{pmatrix}
+      = -\begin{pmatrix} r(1) \\ r(2) \\ \vdots \\ r(p) \end{pmatrix}.$$
+  </div>
+
+  <h3>Levinson&ndash;Durbin</h3>
+  <p>
+    Rather than invert the $p \times p$ Toeplitz matrix, we ascend through orders
+    $1, 2, \ldots, p$. At order $i$ the reflection coefficient is
+  </p>
+  <div class="math">
+    $$k_i \;=\; -\frac{r(i) + \sum_{j=1}^{i-1} a_j^{(i-1)}\, r(i-j)}{E_{i-1}},$$
+  </div>
+  <p>
+    the new predictor coefficients are $a_j^{(i)} = a_j^{(i-1)} + k_i\,a_{i-j}^{(i-1)}$,
+    and the prediction error power updates as
+  </p>
+  <div class="math">
+    $$E_i \;=\; E_{i-1}\,(1 - k_i^{\,2}).$$
+  </div>
+  <p>
+    Stability: if all $|k_i| < 1$ then $A(z) = 1 + \sum a_i z^{-i}$ has all
+    zeros inside the unit circle, so $1/A(z)$ is stable. The algorithm is
+    Leroy Levinson's doctoral recursion (1947), rediscovered in the signal
+    processing context by J.&nbsp;P.&nbsp;Burg, J.&nbsp;Durbin (1960), and put
+    to work in speech by B.&nbsp;S.&nbsp;Atal and L.&nbsp;R.&nbsp;Rabiner.
+  </p>
+
+  <h3>The lossless tube interpretation</h3>
+  <p>
+    The reflection coefficients $\{k_i\}$ have a beautiful physical meaning:
+    they are literally the boundary reflection coefficients of a lossless
+    acoustic tube made of $p+1$ uniform cylindrical sections. A positive $k_i$
+    means the tube widens, a negative $k_i$ means it narrows. This insight,
+    due to Kelly and Lochbaum in the 1960s (and developed by Markel and Gray),
+    is why LPC analysis and articulatory vocal-tract modelling converged:
+    $\{k_i\}$ from speech analysis give you a tube, and the tube reproduces the
+    speech. The cross-link to <em>Physical Audio Signal Processing</em> is
+    direct.
+  </p>
+
+  <h3>Interactive: Levinson&ndash;Durbin</h3>
+  <div class="viz">
+    <canvas id="lev" height="340" style="height:340px"></canvas>
+    <div class="controls">
+      <label>Vowel
+        <select id="levV">
+          <option value="a" selected>/a/</option>
+          <option value="i">/i/</option>
+          <option value="u">/u/</option>
+        </select>
+      </label>
+      <label>Order p
+        <input type="range" id="levP" min="2" max="24" value="12" step="1">
+        <span id="levPVal">12</span>
+      </label>
+    </div>
+    <div class="readout" id="levRead">&middot;&middot;&middot;</div>
+    <div class="viz-caption">Left: reflection coefficients k_i bar chart (green: |k|&lt;1 stable). Right: prediction-error power E_i as a function of order (log scale) &mdash; a "knee" indicates that more coefficients stop helping.</div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CH 11 -- PHASE VOCODER VARIANTS                                -->
+<!-- ============================================================ -->
+<section id="ch11">
+  <h2><span class="num">11</span>Phase-Vocoder Variants</h2>
+  <p class="lead">
+    The phase vocoder &mdash; Flanagan &amp; Golden's 1966 Bell Labs idea to
+    treat each STFT bin as an amplitude-modulated, frequency-modulated carrier
+    &mdash; lives inside almost every audio time-stretcher and pitch-shifter.
+    The mechanics of the phase-unwrap update belong in the STFT companion,
+    which derives them in full; here we survey the variants SASP focuses on.
+  </p>
+
+  <h3>Flanagan &amp; Golden (1966)</h3>
+  <p>
+    The original. Each analysis bin carries a magnitude and an instantaneous
+    frequency; each synthesis bin reconstructs a sinusoid from those. In its
+    plain form it suffers from "phasiness": sinusoids that straddle two bins
+    (which is most of them) lose their strict phase coupling when each bin's
+    phase is advanced independently.
+  </p>
+
+  <h3>Laroche &amp; Dolson identity phase locking (1999)</h3>
+  <p>
+    Jean Laroche and Mark Dolson &mdash; at IRCAM and E-Mu respectively &mdash;
+    fixed phasiness with a small change. Detect the local magnitude peaks in
+    every frame; for each peak, advance its phase by the usual phase-vocoder
+    update; but for the two neighbours on each side, copy the peak's <em>phase
+    increment</em> so the relative phase across the three-bin mainlobe is
+    preserved. The result sounds dramatically cleaner.
+  </p>
+  <div class="math">
+    $$\tilde\phi_{k\pm 1}^{(m)} \;=\; \tilde\phi_{k}^{(m)} \,+\,\bigl(\angle X_{k\pm 1}^{(m)} - \angle X_{k}^{(m)}\bigr).$$
+  </div>
+
+  <h3>Griffin&ndash;Lim magnitude-only reconstruction (1984)</h3>
+  <p>
+    If you have only a magnitude spectrogram &mdash; say from a neural model
+    &mdash; the Griffin&ndash;Lim alternating projection is the classical way
+    to invent a plausible phase. It is covered in detail in the
+    <a href="https://github.com/BrendanJamesLynskey/STFT_for_Sound" target="_blank">STFT for Sound</a>
+    companion. Modern neural vocoders (WaveNet, HiFi-GAN, WaveGlow) beat
+    Griffin&ndash;Lim on perceived quality, but it remains the dependency-free
+    baseline.
+  </p>
+
+  <h3>Sinusoidal-model phase vocoder</h3>
+  <p>
+    SASP's distinctive contribution is the observation that the plain
+    phase-vocoder phase-update equations are exactly what fall out of
+    sinusoidal modelling when you identify each bin with a single track. The
+    MQ synthesiser <em>is</em> a phase vocoder, one oscillator per track, with
+    the bonus that birth/death resolve explicitly. A sinusoidal-model
+    time-stretch stretches tracks, not bins, and does not suffer from phasiness
+    at all. Modern tools like SPEAR, Loris, and SMSTools implement this
+    approach.
+  </p>
+
+  <div class="note">
+    A working pitch-shifter you can inspect live: <a href="https://github.com/BrendanJamesLynskey/MusicalTimeStretchingPitchShifting" target="_blank">MusicalTimeStretchingPitchShifting</a>.
+    The companion repo <a href="https://github.com/BrendanJamesLynskey/PhaseVocoder" target="_blank">PhaseVocoder</a>
+    carries a minimal reference implementation.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CH 12 -- APPLICATIONS                                          -->
+<!-- ============================================================ -->
+<section id="ch12">
+  <h2><span class="num">12</span>Applications</h2>
+  <p class="lead">
+    The methods in chapters 3&ndash;11 are the building blocks for four broad
+    application families in audio. Each is an active area of research and each
+    runs on the same few primitives: pick peaks, track them, estimate envelopes,
+    separate, resynthesise.
+  </p>
+
+  <h3>Additive resynthesis with track editing</h3>
+  <p>
+    The earliest application of MQ/SMS analysis. Edit the tracks &mdash; move
+    them in pitch, stretch them in time, remove some &mdash; and resynthesise.
+    SPEAR, Loris, and SMSTools all implement this. The interactive SMS demo in
+    chapter 5 is a miniature version: the "deterministic" button is exactly
+    additive resynthesis from the retained peaks.
+  </p>
+
+  <h3>Pitch-shifting that preserves timbre</h3>
+  <p>
+    Plain resampling shifts pitch and formants together, producing the
+    "chipmunk" effect. A sinusoidal-model pitch shift scales the frequencies
+    but keeps the amplitudes driven by the spectral envelope of the original
+    &mdash; so when the pitch goes up, the formants stay put. This is how
+    Melodyne, Auto-Tune, Ableton's Complex Pro, and Logic's Flex Pitch all
+    work under the hood. The envelope is usually a cepstral or true envelope,
+    sampled at the new partial frequencies.
+  </p>
+
+  <h3>Sinusoidal-model denoising</h3>
+  <p>
+    If a signal is known to be mostly a small number of sinusoids &mdash; a
+    solo violin, a sustained vowel &mdash; you can denoise aggressively by
+    resynthesising only the tracks that live long enough and are loud enough.
+    Noise shows up as short, faint peaks that never link into tracks; they
+    are discarded by the track-length and amplitude thresholds. This approach
+    is the ancestor of modern non-negative matrix factorisation denoisers.
+  </p>
+
+  <h3>Adaptive spectral whitening</h3>
+  <p>
+    Invert the estimated spectral envelope (LPC, cepstral, or true) to get a
+    whitening filter, apply it, and you have a flattened residual that is
+    much easier to analyse for onsets, pitch, or chord detection. Adaptive
+    whitening is baked into almost every modern music-information-retrieval
+    pipeline.
+  </p>
+
+  <h3>Differentiable spectral modelling (DDSP)</h3>
+  <p>
+    Engel, Hantrakul, Gu, and Roberts (2020) showed that sinusoidal plus
+    filtered-noise decomposition can be made <em>differentiable</em> and
+    trained end-to-end with a neural controller, producing the
+    <em>Differentiable Digital Signal Processing</em> framework. DDSP is the
+    direct neural descendant of SMS: sinusoids plus stochastic residual, with
+    the parameters emitted by a neural net rather than hand-tuned. See the
+    <a href="https://github.com/BrendanJamesLynskey/DDSP_Differentiable_DSP" target="_blank">DDSP_Differentiable_DSP</a>
+    companion for an interactive treatment.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- CH 13 -- LEGACY                                                -->
+<!-- ============================================================ -->
+<section id="ch13">
+  <h2><span class="num">13</span>Legacy and Continuing Impact</h2>
+  <p class="lead">
+    Smith's SASP is the Rosetta Stone between classical spectrum analysis and
+    today's neural-audio world. Its vocabulary &mdash; tracks, deterministic
+    plus stochastic, reassignment, cepstral envelope, reflection coefficients
+    &mdash; is the vocabulary of every modern spectral audio system, even the
+    ones whose parameters are learned instead of estimated.
+  </p>
+
+  <h3>Software descendants</h3>
+  <ul style="margin-left:1.5em;color:var(--fg-dim);font-size:.95rem;line-height:1.8">
+    <li><strong>SPEAR</strong> (Klingbeil, 2005): sinusoidal-track editor with
+      MQ analysis and additive resynthesis; educational and still widely
+      used.</li>
+    <li><strong>SMSTools</strong> (Serra and the UPF Music Technology Group):
+      the canonical SMS implementation; teaches the sinusoids-plus-residual
+      decomposition.</li>
+    <li><strong>Loris</strong> (Fitz &amp; Haken, 2002): partials tracking
+      with bandwidth-enhanced partials &mdash; SMS with a noise bandwidth
+      per partial instead of a separate residual.</li>
+    <li><strong>World</strong> (Morise, 2016): fast speech analysis with
+      DIO pitch, CheapTrick envelope, and PLATINUM aperiodicity &mdash; all
+      built on SASP primitives.</li>
+    <li><strong>SuperVP</strong> (IRCAM): the engine behind AudioSculpt, with
+      true-envelope, phase-vocoder time-stretch, and track editing.</li>
+  </ul>
+
+  <h3>Coding standards</h3>
+  <p>
+    MPEG-4 <strong>HILN</strong> (Harmonic and Individual Lines plus Noise,
+    Purnhagen &amp; Meine 2000) codes low-bitrate audio with an explicit
+    sinusoids-plus-noise model &mdash; SMS in a standards document. Even where
+    MDCT has won the codec wars (AAC, Opus), residual noise shaping borrows the
+    SMS stochastic-part idea.
+  </p>
+
+  <h3>Neural spectral vocoders</h3>
+  <p>
+    WaveNet (van den Oord 2016), Parallel WaveNet (2017), WaveRNN (2018),
+    MelGAN (2019), HiFi-GAN (2020), BigVGAN (2022) all map log-mel
+    spectrograms to waveforms with neural networks. None of them explicitly
+    uses MQ tracks or LPC, but the <em>input representation</em> they consume
+    &mdash; log-mel spectrogram &mdash; is exactly what SASP's chapter on the
+    STFT gives you. Their output quality rises in step with the fidelity of
+    their handling of the <em>sinusoidal</em> part of the spectrum, which is
+    still the hardest thing for a neural net to reproduce cleanly.
+  </p>
+
+  <h3>Differentiable spectral modelling</h3>
+  <p>
+    DDSP (Engel et al. 2020) closed the circle: sinusoidal-plus-noise
+    synthesis implemented with differentiable operations, parameters emitted
+    by a neural controller, trained end-to-end. The result is orders of
+    magnitude more parameter-efficient than raw neural vocoding and inherits
+    the interpretability of SMS. As of 2025, DDSP-style hybrid models are
+    behind several commercial synths and are the core of the Magenta project.
+  </p>
+
+  <h3>Related guides in this series</h3>
+  <p>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/STFT_for_Sound" target="_blank">STFT_for_Sound</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Wavelets_for_Sound" target="_blank">Wavelets_for_Sound</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Constant_Q_Transform_for_Sound" target="_blank">Constant_Q_Transform_for_Sound</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/MFCC_for_Sound" target="_blank">MFCC_for_Sound</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/MDCT_for_Sound" target="_blank">MDCT_for_Sound</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Sound_Transforms_History" target="_blank">Sound_Transforms_History</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/DDSP_Differentiable_DSP" target="_blank">DDSP_Differentiable_DSP</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/PhaseVocoder" target="_blank">PhaseVocoder</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/MusicalTimeStretchingPitchShifting" target="_blank">MusicalTimeStretchingPitchShifting</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Synth_Additive" target="_blank">Synth_Additive</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Synth_Spectralist" target="_blank">Synth_Spectralist</a>
+  </p>
+  <p>
+    And the sibling Companion repos on the four JOS books:
+  </p>
+  <p>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Companion_JOS_Mathematics_of_the_DFT" target="_blank">Companion_JOS_Mathematics_of_the_DFT</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Companion_JOS_Introduction_to_Digital_Filters" target="_blank">Companion_JOS_Introduction_to_Digital_Filters</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Companion_JOS_Physical_Audio_Signal_Processing" target="_blank">Companion_JOS_Physical_Audio_Signal_Processing</a>
+    <a class="xlink" href="https://github.com/BrendanJamesLynskey/Companion_JOS_Audio_Signal_Processing_in_Faust" target="_blank">Companion_JOS_Audio_Signal_Processing_in_Faust</a>
+  </p>
+
+  <div class="references">
+    <h3>Key references</h3>
+    <ol>
+      <li>Smith, J. O. (2011). <em>Spectral Audio Signal Processing.</em> W3K Publishing. Online at <a href="https://ccrma.stanford.edu/~jos/sasp/" target="_blank">ccrma.stanford.edu/~jos/sasp/</a>.</li>
+      <li>McAulay, R. J. &amp; Quatieri, T. F. (1986). <em>Speech Analysis/Synthesis Based on a Sinusoidal Representation.</em> IEEE Trans. ASSP, 34(4), 744&ndash;754.</li>
+      <li>Serra, X. &amp; Smith, J. O. (1990). <em>Spectral Modeling Synthesis: A Sound Analysis/Synthesis System Based on a Deterministic plus Stochastic Decomposition.</em> Computer Music Journal, 14(4), 12&ndash;24.</li>
+      <li>Abe, M. &amp; Smith, J. O. (2004). <em>Design Criteria for the Quadratically Interpolated FFT Method (I): Bias due to Interpolation.</em> CCRMA Technical Report STAN-M-117.</li>
+      <li>de Cheveign&eacute;, A. &amp; Kawahara, H. (2002). <em>YIN, a Fundamental Frequency Estimator for Speech and Music.</em> J. Acoust. Soc. Am., 111(4), 1917&ndash;1930.</li>
+      <li>Noll, A. M. (1967). <em>Cepstrum Pitch Determination.</em> J. Acoust. Soc. Am., 41(2), 293&ndash;309.</li>
+      <li>Kodera, K., Gendrin, R. &amp; de Villedary, C. (1976). <em>A New Method for the Numerical Analysis of Nonstationary Signals.</em> Phys. Earth Planet. Int., 12, 142&ndash;150.</li>
+      <li>Auger, F. &amp; Flandrin, P. (1995). <em>Improving the Readability of Time-Frequency and Time-Scale Representations by the Reassignment Method.</em> IEEE Trans. Signal Processing, 43(5), 1068&ndash;1089.</li>
+      <li>Rabiner, L. R., Schafer, R. W. &amp; Rader, C. M. (1969). <em>The Chirp z-Transform Algorithm.</em> IEEE Trans. Audio Electroacoust., 17(2), 86&ndash;92.</li>
+      <li>Bluestein, L. I. (1970). <em>A Linear Filtering Approach to the Computation of the Discrete Fourier Transform.</em> IEEE Trans. Audio Electroacoust., 18(4), 451&ndash;455.</li>
+      <li>Atal, B. S. &amp; Schroeder, M. R. (1979). <em>Predictive Coding of Speech Signals and Subjective Error Criteria.</em> IEEE Trans. ASSP, 27(3), 247&ndash;254.</li>
+      <li>Itakura, F. &amp; Saito, S. (1970). <em>A Statistical Method for Estimation of Speech Spectral Density and Formant Frequencies.</em> Electronics and Communications in Japan, 53-A, 36&ndash;43.</li>
+      <li>Markel, J. D. &amp; Gray, A. H. (1976). <em>Linear Prediction of Speech.</em> Springer-Verlag.</li>
+      <li>Levinson, N. (1947). <em>The Wiener RMS Error Criterion in Filter Design and Prediction.</em> J. Math. Phys., 25, 261&ndash;278.</li>
+      <li>Durbin, J. (1960). <em>The Fitting of Time-Series Models.</em> Rev. Int. Statist. Inst., 28, 233&ndash;244.</li>
+      <li>Flanagan, J. L. &amp; Golden, R. M. (1966). <em>Phase Vocoder.</em> Bell System Technical Journal, 45(9), 1493&ndash;1509.</li>
+      <li>Laroche, J. &amp; Dolson, M. (1999). <em>Improved Phase Vocoder Time-Scale Modification of Audio.</em> IEEE Trans. SAP, 7(3), 323&ndash;332.</li>
+      <li>Griffin, D. W. &amp; Lim, J. S. (1984). <em>Signal Estimation from Modified Short-Time Fourier Transform.</em> IEEE Trans. ASSP, 32(2), 236&ndash;243.</li>
+      <li>R&ouml;bel, A. &amp; Rodet, X. (2005). <em>Efficient Spectral Envelope Estimation and its Application to Pitch Shifting and Envelope Preservation.</em> Proc. DAFx, 30&ndash;35.</li>
+      <li>Purnhagen, H. &amp; Meine, N. (2000). <em>HILN&mdash;The MPEG-4 Parametric Audio Coding Tools.</em> Proc. ISCAS.</li>
+      <li>Engel, J. et al. (2020). <em>DDSP: Differentiable Digital Signal Processing.</em> Proc. ICLR 2020.</li>
+      <li>Fitz, K. &amp; Haken, L. (2002). <em>On the Use of Time&ndash;Frequency Reassignment in Additive Sound Modeling.</em> J. Audio Eng. Soc., 50(11), 879&ndash;893.</li>
+      <li>Kong, J. et al. (2020). <em>HiFi-GAN: Generative Adversarial Networks for Efficient and High Fidelity Speech Synthesis.</em> NeurIPS 2020.</li>
+      <li>van den Oord, A. et al. (2016). <em>WaveNet: A Generative Model for Raw Audio.</em> arXiv:1609.03499.</li>
+    </ol>
+  </div>
+</section>
+
+<footer id="pagefoot-placeholder">
+  <p>
+    An interactive companion by
+    <a href="https://github.com/BrendanJamesLynskey" target="_blank">BrendanJamesLynskey</a>
+    to Julius O. Smith III's
+    <a href="https://ccrma.stanford.edu/~jos/sasp/" target="_blank"><em>Spectral Audio Signal Processing</em></a>.
+    <br>Zero dependencies &mdash; vanilla HTML, Canvas &amp; Web Audio API.
+    <br>MIT License.
+  </p>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+// -- Utilities --------------------------------------------------
+const DPR = window.devicePixelRatio || 1;
+function setupCanvas(canvas, w, h) {
+  canvas.width = Math.round(w * DPR);
+  canvas.height = Math.round(h * DPR);
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+function fitWidth(canvas) {
+  const r = canvas.parentElement.getBoundingClientRect();
+  return Math.max(320, Math.floor(r.width));
+}
+
+// Radix-2 FFT (in-place, complex arrays)
+function fft(reArr, imArr, inverse) {
+  const n = reArr.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) {
+      let t = reArr[i]; reArr[i] = reArr[j]; reArr[j] = t;
+      t = imArr[i]; imArr[i] = imArr[j]; imArr[j] = t;
+    }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = (inverse ? 2 : -2) * Math.PI / len;
+    const wRe = Math.cos(ang), wIm = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cR = 1, cI = 0;
+      for (let k = 0; k < len/2; k++) {
+        const uR = reArr[i+k], uI = imArr[i+k];
+        const vR = reArr[i+k+len/2]*cR - imArr[i+k+len/2]*cI;
+        const vI = reArr[i+k+len/2]*cI + imArr[i+k+len/2]*cR;
+        reArr[i+k] = uR + vR;
+        imArr[i+k] = uI + vI;
+        reArr[i+k+len/2] = uR - vR;
+        imArr[i+k+len/2] = uI - vI;
+        const nR = cR*wRe - cI*wIm;
+        cI = cR*wIm + cI*wRe;
+        cR = nR;
+      }
+    }
+  }
+  if (inverse) for (let i = 0; i < n; i++) { reArr[i]/=n; imArr[i]/=n; }
+}
+
+// -- Windows ----------------------------------------------------
+function winRect(L){const w=new Float32Array(L); w.fill(1); return w;}
+function winHann(L){const w=new Float32Array(L); for(let n=0;n<L;n++) w[n]=0.5-0.5*Math.cos(2*Math.PI*n/(L-1)); return w;}
+function winHamming(L){const w=new Float32Array(L); for(let n=0;n<L;n++) w[n]=0.54-0.46*Math.cos(2*Math.PI*n/(L-1)); return w;}
+function winBlackman(L){const w=new Float32Array(L); for(let n=0;n<L;n++) w[n]=0.42-0.5*Math.cos(2*Math.PI*n/(L-1))+0.08*Math.cos(4*Math.PI*n/(L-1)); return w;}
+function winBlackmanHarris(L){const w=new Float32Array(L); const a=[0.35875,0.48829,0.14128,0.01168]; for(let n=0;n<L;n++){const x=2*Math.PI*n/(L-1); w[n]=a[0]-a[1]*Math.cos(x)+a[2]*Math.cos(2*x)-a[3]*Math.cos(3*x);} return w;}
+function winGaussian(L,sigma){const w=new Float32Array(L); const c=(L-1)/2; const s=sigma||0.4; for(let n=0;n<L;n++){const d=(n-c)/(s*c); w[n]=Math.exp(-0.5*d*d);} return w;}
+function bessel0(x){let s=1,t=1; for(let k=1;k<32;k++){t*=(x/(2*k))*(x/(2*k)); s+=t; if(t<1e-12) break;} return s;}
+function winKaiser(L,beta){const w=new Float32Array(L); const b=beta||6; const i0b=bessel0(b); const c=(L-1)/2; for(let n=0;n<L;n++){const x=(n-c)/c; w[n]=bessel0(b*Math.sqrt(Math.max(0,1-x*x)))/i0b;} return w;}
+function winFlatTop(L){const w=new Float32Array(L); const a=[0.21557895,0.41663158,0.277263158,0.083578947,0.006947368]; for(let n=0;n<L;n++){const x=2*Math.PI*n/(L-1); w[n]=a[0]-a[1]*Math.cos(x)+a[2]*Math.cos(2*x)-a[3]*Math.cos(3*x)+a[4]*Math.cos(4*x);} return w;}
+const WINDOWS = {
+  rect:{name:'Rectangular',fn:winRect},
+  hann:{name:'Hann',fn:winHann},
+  hamming:{name:'Hamming',fn:winHamming},
+  blackman:{name:'Blackman',fn:winBlackman},
+  blackmanharris:{name:'Blackman-Harris',fn:winBlackmanHarris},
+  gaussian:{name:'Gaussian',fn:L=>winGaussian(L,0.4)},
+  kaiser:{name:'Kaiser',fn:L=>winKaiser(L,6)},
+  flattop:{name:'Flat-top',fn:winFlatTop},
+};
+
+// -- Audio ------------------------------------------------------
+let audioCtx = null;
+function getAudioCtx(){if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); return audioCtx;}
+function playBuffer(samples, sr){
+  const ctx = getAudioCtx();
+  if (ctx.state==='suspended') ctx.resume();
+  const buf = ctx.createBuffer(1, samples.length, sr);
+  buf.getChannelData(0).set(samples);
+  const src = ctx.createBufferSource();
+  src.buffer = buf; src.connect(ctx.destination); src.start();
+  return src;
+}
+
+// Colour map
+function viridisLike(v){
+  v = Math.max(0, Math.min(1, v));
+  const stops = [
+    [0.00,[68,1,84]],[0.15,[72,35,116]],[0.30,[64,67,135]],
+    [0.45,[52,94,141]],[0.60,[41,121,142]],[0.70,[34,167,132]],
+    [0.80,[94,201,97]],[0.90,[181,222,43]],[1.00,[253,231,37]]
+  ];
+  for(let i=1;i<stops.length;i++){
+    if(v<=stops[i][0]){
+      const t=(v-stops[i-1][0])/(stops[i][0]-stops[i-1][0]);
+      const a=stops[i-1][1], b=stops[i][1];
+      return [a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1]),a[2]+t*(b[2]-a[2])];
+    }
+  }
+  return stops[stops.length-1][1];
+}
+
+// Expose namespace for demos below
+window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, viridisLike };
+
+// -- Hero canvas: sinusoidal tracks drifting in T-F plane ------
+(function heroAnim(){
+  const c = document.getElementById('heroCanvas');
+  if(!c) return;
+  const hostW = () => Math.max(320, document.documentElement.clientWidth);
+  const hostH = () => Math.max(400, Math.min(window.innerHeight, 900));
+  let ctx = setupCanvas(c, hostW(), hostH());
+  let W = hostW(), H = hostH();
+  // Persistent "trail" layer: a second offscreen canvas we fade each frame.
+  const trail = document.createElement('canvas');
+  let tctx = null;
+  function setupTrail(){
+    trail.width = Math.round(W*DPR);
+    trail.height = Math.round(H*DPR);
+    tctx = trail.getContext('2d');
+    tctx.scale(DPR, DPR);
+    tctx.fillStyle = '#0a0b0f'; tctx.fillRect(0,0,W,H);
+  }
+  setupTrail();
+  const tracks = [];
+  const N_TRACK = 14;
+  function newTrack(now){
+    const f0 = 0.05 + 0.9*Math.random();
+    return {
+      t0: now,
+      life: 4000 + 9000*Math.random(),
+      f0,
+      // drift: each track gradually glides in frequency (like a vibrato or legato)
+      drift: (Math.random()-0.5)*0.00008,
+      vib: {amp: 0.002 + 0.02*Math.random(), rate: 2 + 6*Math.random(), ph: Math.random()*6.28},
+      amp: 0.35 + 0.65*Math.random(),
+      // speed across time axis
+      v: 0.06 + 0.08*Math.random(),
+      x0: -0.1 - 0.2*Math.random(),
+    };
+  }
+  function seed(){ tracks.length=0; const now=performance.now();
+    for(let i=0;i<N_TRACK;i++){ const tr = newTrack(now - Math.random()*6000); tracks.push(tr); }
+  }
+  seed();
+  let last = performance.now();
+  function frame(now){
+    const dt = Math.min(0.05, (now-last)/1000); last = now;
+    const nW = hostW(), nH = hostH();
+    if(nW !== W || nH !== H){ W=nW; H=nH; ctx = setupCanvas(c, W, H); setupTrail(); }
+    // Fade the trail layer slightly each frame.
+    tctx.fillStyle = 'rgba(10,11,15,0.045)'; tctx.fillRect(0,0,W,H);
+
+    for(let i=tracks.length-1;i>=0;i--){
+      const a = tracks[i];
+      const age = now - a.t0;
+      if(age > a.life){ tracks[i] = newTrack(now); continue; }
+      // progress across screen, 0..1
+      const x = a.x0 + a.v * (age/1000);
+      if(x > 1.15){ tracks[i] = newTrack(now); continue; }
+      // frequency with slow drift + small vibrato
+      const f = a.f0 + a.drift*age + a.vib.amp*Math.sin(a.vib.ph + a.vib.rate*age/1000);
+      const px = x * W;
+      const py = (1 - Math.min(1,Math.max(0,f))) * H;
+      // birth/death envelope
+      const u = age/a.life;
+      const env = Math.sin(Math.PI * Math.min(1,Math.max(0,u)));
+      const col = viridisLike(f);
+      // Draw a bright dot on the trail layer (so it persists)
+      const r = 2.2 + 0.9*Math.sin(now*0.004 + i);
+      const grad = tctx.createRadialGradient(px,py,0,px,py,10);
+      grad.addColorStop(0, `rgba(${col[0]|0},${col[1]|0},${col[2]|0},${0.55*env*a.amp})`);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      tctx.fillStyle = grad;
+      tctx.beginPath(); tctx.arc(px,py,10,0,Math.PI*2); tctx.fill();
+      tctx.fillStyle = `rgba(${col[0]|0},${col[1]|0},${col[2]|0},${0.95*env})`;
+      tctx.beginPath(); tctx.arc(px,py,r,0,Math.PI*2); tctx.fill();
+    }
+    // Composite trail onto visible canvas
+    ctx.fillStyle='rgba(10,11,15,1)'; ctx.fillRect(0,0,W,H);
+    ctx.drawImage(trail, 0, 0, W, H);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  window.addEventListener('resize', ()=>{});
+})();
+
+// -- CH2: Window library + parametric readouts -----------------
+(function ch2Demo(){
+  const c = document.getElementById('winLib');
+  if(!c) return;
+  const sel = document.getElementById('wlSel');
+  const lenR = document.getElementById('wlLen'), lenV = document.getElementById('wlLenVal');
+  const zpR  = document.getElementById('wlZP'),  zpV  = document.getElementById('wlZPVal');
+  const readout = document.getElementById('wlRead');
+  let ctx = null, W = 0, H = 320;
+  function pickL(val){ // ensure a nice number; not required to be power of 2 for time-domain
+    return Math.max(16, Math.round(val/16)*16);
+  }
+  function draw(){
+    const L = pickL(parseInt(lenR.value,10));
+    const ZP = parseInt(zpR.value,10);
+    lenV.textContent = L; zpV.textContent = ZP;
+    const wkey = sel.value;
+    const w = WINDOWS[wkey].fn(L);
+    // Compute FFT of zero-padded window
+    let N = 1;
+    while (N < L*ZP) N <<= 1;
+    const re = new Float32Array(N), im = new Float32Array(N);
+    // Centre-pad: place w symmetric around zero to get a real, even spectrum with zero-phase
+    // Actually for mainlobe shape it is enough to pad to the right.
+    for(let i=0;i<L;i++) re[i] = w[i];
+    fft(re, im, false);
+    const mag = new Float32Array(N/2);
+    let maxM = 1e-20;
+    for(let k=0;k<N/2;k++){ const m = Math.hypot(re[k],im[k]); mag[k]=m; if(m>maxM) maxM=m; }
+    // dB
+    const db = new Float32Array(N/2);
+    for(let k=0;k<N/2;k++) db[k] = 20*Math.log10(Math.max(1e-12, mag[k]/maxM));
+
+    W = fitWidth(c);
+    ctx = setupCanvas(c, W, H);
+    ctx.fillStyle = '#0f111a'; ctx.fillRect(0,0,W,H);
+
+    // --- Left panel: time-domain window
+    const padL=40, padT=20, padB=30;
+    const leftW = Math.floor(W*0.42);
+    const rightX = leftW + 10;
+    const rightW = W - rightX - 10;
+    const plotH = H - padT - padB;
+    // frame
+    ctx.strokeStyle = '#2a2d3a'; ctx.lineWidth = 1;
+    ctx.strokeRect(padL, padT, leftW - padL - 10, plotH);
+    // window curve
+    ctx.strokeStyle = '#e8a44a'; ctx.lineWidth = 1.6; ctx.beginPath();
+    for(let i=0;i<L;i++){
+      const x = padL + (i/(L-1))*(leftW - padL - 10);
+      const y = padT + (1 - w[i])*plotH;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#8a8d9a'; ctx.font = '10px "Lucida Console", monospace';
+    ctx.fillText('w[n]', padL + 4, padT + 12);
+    ctx.fillText(`L = ${L}`, padL + 4, H - 6);
+
+    // --- Right panel: dB magnitude
+    ctx.strokeStyle = '#2a2d3a';
+    ctx.strokeRect(rightX, padT, rightW, plotH);
+    const dBmin = -120, dBmax = 0;
+    // grid
+    ctx.strokeStyle = '#1a1d2a'; ctx.lineWidth = 1;
+    for(let g=-20;g>=dBmin;g-=20){
+      const y = padT + ((dBmax - g)/(dBmax-dBmin))*plotH;
+      ctx.beginPath(); ctx.moveTo(rightX,y); ctx.lineTo(rightX+rightW,y); ctx.stroke();
+      ctx.fillStyle='#8a8d9a'; ctx.font = '9px "Lucida Console", monospace';
+      ctx.fillText(String(g), rightX+4, y-2);
+    }
+    // Plot only a portion around DC for better mainlobe visibility
+    const shownBins = Math.min(N/2, Math.floor(32*ZP));
+    ctx.strokeStyle = '#4a9de8'; ctx.lineWidth = 1.4; ctx.beginPath();
+    for(let k=0;k<shownBins;k++){
+      const x = rightX + (k/(shownBins-1))*rightW;
+      const vdB = Math.max(dBmin, db[k]);
+      const y = padT + ((dBmax - vdB)/(dBmax-dBmin))*plotH;
+      if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+
+    // --- Readouts: mainlobe -6dB width (bins, rel to L), peak sidelobe, scalloping
+    // Find -6 dB crossing starting at DC
+    let k6 = 0;
+    for(let k=1;k<shownBins;k++){ if(db[k] < -6){ k6 = k - (db[k]+6)/(db[k]-db[k-1]); break; } }
+    const mainlobe_bins_L = 2*k6 / ZP; // in units of L-bins (1/L cycles/sample)
+    // Find first local min after mainlobe
+    let firstMin = 0;
+    for(let k=2;k<shownBins-1;k++){ if(db[k]<db[k-1] && db[k]<db[k+1]){ firstMin = k; break; } }
+    let sll = -1000;
+    for(let k=firstMin; k<shownBins-1;k++){ if(db[k]>db[k-1] && db[k]>db[k+1] && db[k]>sll) sll = db[k]; }
+    // Scalloping loss: value at bin midway between two DFT samples = 0.5 * (1/L of a cycle in original, i.e. ZP/2 of the zero-pad step)
+    const midK = Math.round(ZP/2);
+    const scallop = db[midK];
+
+    readout.innerHTML =
+      `main-lobe 6 dB width <span>${mainlobe_bins_L.toFixed(2)}</span> bins ` +
+      `&middot; peak sidelobe <span>${sll.toFixed(1)}</span> dB ` +
+      `&middot; scalloping <span>${scallop.toFixed(2)}</span> dB ` +
+      `&middot; FFT <span>${N}</span>`;
+  }
+  window.addEventListener('resize', draw);
+  [sel,lenR,zpR].forEach(el => el.addEventListener('input', draw));
+  setTimeout(draw, 80);
+})();
+
+// -- CH3: Quadratic Peak Interpolation -------------------------
+(function ch3Demo(){
+  const c = document.getElementById('qpi');
+  if(!c) return;
+  const fR = document.getElementById('qpiF'), fV = document.getElementById('qpiFVal');
+  const aR = document.getElementById('qpiA'), aV = document.getElementById('qpiAVal');
+  const wS = document.getElementById('qpiW');
+  const lS = document.getElementById('qpiL');
+  const nR = document.getElementById('qpiN'), nV = document.getElementById('qpiNVal');
+  const readout = document.getElementById('qpiRead');
+  let ctx = null, W = 0, H = 360;
+
+  function draw(){
+    const fTrue = parseFloat(fR.value);
+    const amp = parseFloat(aR.value);
+    const noise = parseFloat(nR.value);
+    const L = parseInt(lS.value,10);
+    fV.textContent = fTrue.toFixed(2); aV.textContent = amp.toFixed(2); nV.textContent = noise.toFixed(3);
+    // Build signal of length L: tone at fTrue (in DFT bins per N) over N samples
+    // For simplicity, use N = L. So digital freq = 2*pi*fTrue/L.
+    const N = L;
+    const re = new Float32Array(N), im = new Float32Array(N);
+    const wkey = wS.value;
+    const w = WINDOWS[wkey].fn(N);
+    // Sum of window and a reproducible tiny noise
+    let seed = 1234;
+    function rand(){ seed = (seed*1664525 + 1013904223) >>> 0; return (seed/0xffffffff) - 0.5; }
+    for(let n=0;n<N;n++){
+      const x = amp*Math.sin(2*Math.PI*fTrue*n/N) + noise*rand();
+      re[n] = x*w[n];
+    }
+    fft(re, im, false);
+    const Nh = N>>1;
+    const mag = new Float32Array(Nh);
+    let maxM = 1e-20;
+    for(let k=0;k<Nh;k++){ const m = Math.hypot(re[k],im[k]); mag[k]=m; if(m>maxM) maxM=m; }
+    const db = new Float32Array(Nh);
+    for(let k=0;k<Nh;k++) db[k] = 20*Math.log10(Math.max(1e-12, mag[k]/maxM));
+    // Find peak bin
+    let kStar = 1;
+    for(let k=1;k<Nh-1;k++) if(mag[k]>mag[kStar]) kStar = k;
+    // Parabolic fit (in dB)
+    const a = db[kStar-1], b = db[kStar], cc = db[kStar+1];
+    const denom = (a - 2*b + cc);
+    let delta = 0, peakDb = b;
+    if(Math.abs(denom) > 1e-9){
+      delta = 0.5 * (a - cc) / denom;
+      peakDb = b - 0.25*(a - cc)*delta;
+    }
+    const fEstParab = kStar + delta;
+    const fEstRaw = kStar;
+
+    W = fitWidth(c);
+    ctx = setupCanvas(c, W, H);
+    ctx.fillStyle = '#0f111a'; ctx.fillRect(0,0,W,H);
+
+    // Plot DFT magnitude (dB) from bin 0..Nh
+    const padL=44, padR=12, padT=14, padB=30;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const dBmin = -100, dBmax = 5;
+    // Zoom to +/- 6 bins around peak
+    const lo = Math.max(0, kStar-6), hi = Math.min(Nh-1, kStar+6);
+    ctx.strokeStyle = '#2a2d3a'; ctx.strokeRect(padL,padT,plotW,plotH);
+    // y grid
+    ctx.strokeStyle='#1a1d2a'; ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace';
+    for(let g=-80;g<=0;g+=20){
+      const y = padT + ((dBmax-g)/(dBmax-dBmin))*plotH;
+      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y); ctx.stroke();
+      ctx.fillText(String(g)+' dB', 4, y+3);
+    }
+    // x ticks
+    for(let kk=lo;kk<=hi;kk++){
+      const x = padL + ((kk-lo)/(hi-lo))*plotW;
+      ctx.strokeStyle='#1a1d2a'; ctx.beginPath(); ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH); ctx.stroke();
+      ctx.fillStyle='#8a8d9a'; ctx.fillText(String(kk), x-6, H-10);
+    }
+    // Stems
+    ctx.strokeStyle = '#4a9de8'; ctx.fillStyle='#4a9de8'; ctx.lineWidth=1.6;
+    for(let kk=lo;kk<=hi;kk++){
+      const x = padL + ((kk-lo)/(hi-lo))*plotW;
+      const v = Math.max(dBmin, db[kk]);
+      const y = padT + ((dBmax-v)/(dBmax-dBmin))*plotH;
+      const y0 = padT + ((dBmax-dBmin)/(dBmax-dBmin))*plotH;
+      ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+    }
+    // Parabola (orange) through kStar-1, kStar, kStar+1
+    ctx.strokeStyle = '#e8a44a'; ctx.lineWidth = 1.8; ctx.beginPath();
+    const steps = 120;
+    for(let s=0;s<=steps;s++){
+      const t = -1 + 2*(s/steps); // bin offset from kStar
+      const v = a*t*(t-1)/2 + cc*t*(t+1)/2 - b*(t-1)*(t+1);
+      const kk = kStar + t;
+      if(kk<lo-0.5 || kk>hi+0.5) continue;
+      const x = padL + ((kk-lo)/(hi-lo))*plotW;
+      const y = padT + ((dBmax - Math.max(dBmin,v))/(dBmax-dBmin))*plotH;
+      if(s===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // True frequency: dashed vertical
+    const xTrue = padL + ((fTrue - lo)/(hi-lo))*plotW;
+    ctx.strokeStyle = '#5ce89a'; ctx.setLineDash([4,4]); ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(xTrue,padT); ctx.lineTo(xTrue,padT+plotH); ctx.stroke();
+    ctx.setLineDash([]);
+    // Parabolic estimate: solid orange
+    const xP = padL + ((fEstParab - lo)/(hi-lo))*plotW;
+    ctx.strokeStyle = '#e8a44a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(xP,padT); ctx.lineTo(xP,padT+plotH); ctx.stroke();
+    // Raw estimate: dotted
+    const xR = padL + ((fEstRaw - lo)/(hi-lo))*plotW;
+    ctx.strokeStyle = '#e85a7a'; ctx.setLineDash([2,3]); ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(xR,padT); ctx.lineTo(xR,padT+plotH); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Legend
+    ctx.fillStyle='#5ce89a'; ctx.fillText('true',  padL + plotW - 70, padT + 12);
+    ctx.fillStyle='#e8a44a'; ctx.fillText('parab', padL + plotW - 70, padT + 24);
+    ctx.fillStyle='#e85a7a'; ctx.fillText('bin',   padL + plotW - 70, padT + 36);
+
+    // Readout
+    const eRaw  = (fEstRaw - fTrue);
+    const eParab= (fEstParab - fTrue);
+    readout.innerHTML =
+      `true <span>${fTrue.toFixed(3)}</span> bins ` +
+      `&middot; raw arg-max <span>${fEstRaw}</span> (err <span>${eRaw.toFixed(3)}</span>) ` +
+      `&middot; parabolic <span>${fEstParab.toFixed(3)}</span> (err <span>${eParab.toFixed(4)}</span>) ` +
+      `&middot; peak dB <span>${peakDb.toFixed(2)}</span>`;
+  }
+  window.addEventListener('resize', draw);
+  [fR,aR,wS,lS,nR].forEach(el => el.addEventListener('input', draw));
+  setTimeout(draw, 80);
+})();
+
+// -- Signal library (used by CH4 onward) -----------------------
+function sigVoicedVowel(N, sr, f0){
+  f0 = f0 || 165;
+  const out = new Float32Array(N);
+  // Harmonics 1..20, formant-weighted
+  const F = [700, 1100, 2600, 3200];
+  const BW = [80, 100, 140, 160];
+  for(let n=0;n<N;n++){
+    const t = n/sr;
+    let v = 0;
+    for(let h=1; h<=22; h++){
+      const fh = f0*h;
+      let w = 1/h;
+      for(let r=0;r<F.length;r++){
+        const d = (fh - F[r])/BW[r];
+        w *= 1/(1 + d*d);
+      }
+      v += w*Math.sin(2*Math.PI*fh*t);
+    }
+    out[n] = 0.25*v;
+  }
+  // Soft attack
+  for(let n=0;n<200;n++){ out[n] *= n/200; out[N-1-n] *= n/200; }
+  return out;
+}
+function sigPianoNote(N, sr){
+  const out = new Float32Array(N);
+  const f0 = 261.63;
+  for(let n=0;n<N;n++){
+    const t = n/sr;
+    let v = 0;
+    for(let h=1;h<=14;h++){
+      const fh = f0*h*(1 + 0.0002*h*h); // slight inharmonicity
+      v += Math.pow(h, -1.2)*Math.sin(2*Math.PI*fh*t + h*0.17);
+    }
+    const env = Math.exp(-2*t) * (1 - Math.exp(-300*t));
+    out[n] = 0.3*env*v;
+  }
+  return out;
+}
+function sigChord(N, sr){
+  const out = new Float32Array(N);
+  const roots = [196, 246.94, 329.63];
+  for(let i=0;i<roots.length;i++){
+    const f0 = roots[i];
+    for(let n=0;n<N;n++){
+      const t = n/sr;
+      let v = 0;
+      for(let h=1;h<=10;h++){
+        v += Math.pow(h, -1.3)*Math.sin(2*Math.PI*f0*h*t + i + h*0.1);
+      }
+      const env = 0.7*Math.exp(-1.4*t) + 0.3;
+      out[n] += 0.15*env*v;
+    }
+  }
+  for(let n=0;n<300;n++){ out[n] *= n/300; out[N-1-n] *= n/300; }
+  return out;
+}
+function sigVibrato(N, sr){
+  const out = new Float32Array(N);
+  const f0 = 220;
+  for(let n=0;n<N;n++){
+    const t = n/sr;
+    const mod = 1 + 0.03*Math.sin(2*Math.PI*5.5*t); // 5.5 Hz vibrato
+    let v = 0;
+    for(let h=1;h<=14;h++){
+      // integrate frequency: phase(t) = 2*pi * f0*h * (t - 0.03/(2*pi*5.5) * cos(2*pi*5.5 t))
+      const ph = 2*Math.PI*f0*h*(t - 0.03/(2*Math.PI*5.5)*Math.cos(2*Math.PI*5.5*t) + 0.03/(2*Math.PI*5.5));
+      v += Math.pow(h, -1.2)*Math.sin(ph);
+    }
+    const env = 1.0;
+    out[n] = 0.25*env*v;
+  }
+  for(let n=0;n<200;n++){ out[n] *= n/200; out[N-1-n] *= n/200; }
+  return out;
+}
+
+window.SASP.sigVoicedVowel = sigVoicedVowel;
+window.SASP.sigPianoNote = sigPianoNote;
+window.SASP.sigChord = sigChord;
+window.SASP.sigVibrato = sigVibrato;
+
+// STFT: return frames as array of magnitude arrays plus complex
+function computeSTFT(sig, L, H, winFn){
+  const w = winFn(L);
+  const nFrames = Math.max(1, Math.floor((sig.length - L)/H) + 1);
+  const frames = [];
+  let N = 1; while(N < L) N <<= 1;
+  for(let m=0; m<nFrames; m++){
+    const re = new Float32Array(N), im = new Float32Array(N);
+    const off = m*H;
+    for(let n=0;n<L;n++) re[n] = sig[off+n]*w[n];
+    fft(re, im, false);
+    frames.push({re, im, off});
+  }
+  return {frames, N, L, H, w};
+}
+
+// Find magnitude peaks in dB above floor; return list of {k, db, re, im}
+function pickPeaks(re, im, floorDb){
+  const Nh = re.length >> 1;
+  // mag[k]
+  const mag = new Float32Array(Nh);
+  let maxM = 1e-30;
+  for(let k=0;k<Nh;k++){ const m = Math.hypot(re[k],im[k]); mag[k]=m; if(m>maxM) maxM = m; }
+  const peaks = [];
+  for(let k=2;k<Nh-2;k++){
+    if(mag[k]>mag[k-1] && mag[k]>mag[k+1]){
+      const db = 20*Math.log10(Math.max(1e-30, mag[k]/maxM));
+      if(db > floorDb){
+        // Parabolic interp in dB
+        const aDb = 20*Math.log10(Math.max(1e-30, mag[k-1]/maxM));
+        const cDb = 20*Math.log10(Math.max(1e-30, mag[k+1]/maxM));
+        const denom = aDb - 2*db + cDb;
+        let delta = 0;
+        if(Math.abs(denom) > 1e-9) delta = 0.5*(aDb - cDb)/denom;
+        delta = Math.max(-0.5, Math.min(0.5, delta));
+        const kInt = k + delta;
+        // Interpolated amplitude (linear magnitude scale via dB)
+        const peakDb = db - 0.25*(aDb - cDb)*delta;
+        const amp = Math.pow(10, peakDb/20) * maxM;
+        peaks.push({k: kInt, db, amp});
+      }
+    }
+  }
+  return peaks;
+}
+
+window.SASP.computeSTFT = computeSTFT;
+window.SASP.pickPeaks = pickPeaks;
+
+// -- CH4: MQ track visualiser ---------------------------------
+(function ch4Demo(){
+  const c = document.getElementById('mq');
+  if(!c) return;
+  const sigSel = document.getElementById('mqSig');
+  const delR = document.getElementById('mqDel'), delV = document.getElementById('mqDelVal');
+  const floR = document.getElementById('mqFlo'), floV = document.getElementById('mqFloVal');
+  const lenS = document.getElementById('mqL');
+  const bO = document.getElementById('mqPlayO');
+  const bR = document.getElementById('mqPlayR');
+  const bD = document.getElementById('mqPlayD');
+  const readout = document.getElementById('mqRead');
+  let ctx = null, W = 0, H = 420;
+  const SR = 16000;
+
+  let cache = null;
+
+  function buildSignal(){
+    const key = sigSel.value;
+    let sig;
+    if(key==='voice') sig = sigVoicedVowel(SR, SR, 165);
+    else if(key==='piano') sig = sigPianoNote(SR, SR);
+    else if(key==='chord') sig = sigChord(SR, SR);
+    else sig = sigVibrato(SR, SR);
+    return sig;
+  }
+
+  function analyse(){
+    const sig = buildSignal();
+    const L = parseInt(lenS.value,10);
+    const Hop = Math.floor(L/4);
+    const winFn = WINDOWS.hann.fn;
+    const stft = computeSTFT(sig, L, Hop, winFn);
+    const floorDb = parseFloat(floR.value);
+    const deltaHz = parseFloat(delR.value);
+    const deltaBins = deltaHz / (SR/stft.N); // convert Hz to FFT-bins
+    // Peaks per frame
+    const allPeaks = stft.frames.map(fr => pickPeaks(fr.re, fr.im, floorDb));
+    // Track linking
+    const tracks = []; // {id, born, frames: [{m, k, amp, db}], alive}
+    let alive = []; // indices into tracks, currently alive
+    let nextId = 0;
+    for(let m=0; m<allPeaks.length; m++){
+      const peaks = allPeaks[m].slice();
+      // Greedy nearest match: for each alive track, find nearest free peak
+      const used = new Set();
+      const stillAlive = [];
+      for(const ti of alive){
+        const tr = tracks[ti];
+        const lastK = tr.frames[tr.frames.length-1].k;
+        let best = -1, bestDist = Infinity;
+        for(let p=0;p<peaks.length;p++){
+          if(used.has(p)) continue;
+          const d = Math.abs(peaks[p].k - lastK);
+          if(d < bestDist){ bestDist = d; best = p; }
+        }
+        if(best >= 0 && bestDist < deltaBins){
+          used.add(best);
+          tr.frames.push({m, k: peaks[best].k, amp: peaks[best].amp, db: peaks[best].db});
+          stillAlive.push(ti);
+        } else {
+          // track dies
+        }
+      }
+      // Unused peaks -> new tracks
+      for(let p=0;p<peaks.length;p++){
+        if(used.has(p)) continue;
+        tracks.push({id: nextId++, born: m, frames: [{m, k: peaks[p].k, amp: peaks[p].amp, db: peaks[p].db}]});
+        stillAlive.push(tracks.length - 1);
+      }
+      alive = stillAlive;
+    }
+    cache = {sig, stft, allPeaks, tracks, L, Hop, deltaBins, deltaHz, floorDb};
+    return cache;
+  }
+
+  function draw(){
+    floV.textContent = parseFloat(floR.value).toFixed(0);
+    delV.textContent = parseFloat(delR.value).toFixed(0);
+    const d = analyse();
+    const {stft, tracks, allPeaks, L, Hop} = d;
+    W = fitWidth(c);
+    ctx = setupCanvas(c, W, H);
+    ctx.fillStyle = '#0f111a'; ctx.fillRect(0,0,W,H);
+
+    const padL=40, padR=10, padT=10, padB=24, gap=10;
+    const plotW = W - padL - padR;
+    const plotH = (H - padT - padB - gap)/2;
+    const topY = padT;
+    const botY = padT + plotH + gap;
+
+    // Convert bin to frequency fraction of Nyquist
+    const Nfft = stft.N;
+    const yOfBin = (k, py, ph) => py + ph*(1 - k/(Nfft/2));
+    // Top: spectrogram
+    const nFr = stft.frames.length;
+    // precompute max mag
+    let globMax = 1e-30;
+    for(const fr of stft.frames){
+      for(let k=0;k<Nfft/2;k++){ const m = Math.hypot(fr.re[k], fr.im[k]); if(m>globMax) globMax=m; }
+    }
+    const cellW = plotW / nFr;
+    const Kshow = Math.min(Nfft/2, Math.floor(Nfft*0.3)); // show lower 30% (below ~4.8 kHz at SR=16k)
+    for(let m=0;m<nFr;m++){
+      const fr = stft.frames[m];
+      for(let k=0;k<Kshow;k++){
+        const mag = Math.hypot(fr.re[k], fr.im[k]);
+        const v = Math.max(0, Math.min(1, (20*Math.log10(mag/globMax + 1e-12) + 80)/80));
+        const col = viridisLike(v);
+        ctx.fillStyle = `rgb(${col[0]|0},${col[1]|0},${col[2]|0})`;
+        const x = padL + m*cellW;
+        const y = topY + (1 - k/Kshow)*plotH - plotH/Kshow;
+        ctx.fillRect(x, y, Math.ceil(cellW)+1, Math.ceil(plotH/Kshow)+1);
+      }
+    }
+    // frame
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, topY, plotW, plotH);
+    ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace';
+    ctx.fillText('spectrogram', padL+4, topY+12);
+
+    // Bottom: tracks
+    ctx.fillStyle = '#0a0b0f'; ctx.fillRect(padL, botY, plotW, plotH);
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, botY, plotW, plotH);
+    ctx.fillStyle='#8a8d9a'; ctx.fillText('MQ tracks', padL+4, botY+12);
+
+    // Draw tracks with colour by birth order
+    let longest = 0, nLong = 0;
+    for(const tr of tracks){
+      if(tr.frames.length > longest) longest = tr.frames.length;
+      if(tr.frames.length > 5) nLong++;
+    }
+    for(const tr of tracks){
+      if(tr.frames.length < 3) continue;
+      const hue = (tr.id*37) % 360;
+      ctx.strokeStyle = `hsl(${hue} 70% 65%)`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for(let i=0;i<tr.frames.length;i++){
+        const fm = tr.frames[i];
+        const x = padL + fm.m*cellW + cellW/2;
+        const y = botY + (1 - fm.k/Kshow)*plotH;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+
+    readout.innerHTML =
+      `frames <span>${nFr}</span> &middot; tracks total <span>${tracks.length}</span> ` +
+      `&middot; tracks &gt;5 frames <span>${nLong}</span> ` +
+      `&middot; longest <span>${longest}</span> frames ` +
+      `&middot; &Delta; <span>${parseFloat(delR.value).toFixed(0)} Hz</span> = <span>${d.deltaBins.toFixed(1)}</span> bins`;
+  }
+
+  // Resynthesise from tracks: for each track, linearly interpolate amplitude and
+  // do a cumulative-phase oscillator with frequency linearly interpolated between frames.
+  function resynth(d){
+    const {tracks, L, Hop, stft} = d;
+    const sig = new Float32Array(SR);
+    const dt = 1/SR;
+    const binToRad = 2*Math.PI / stft.N; // rad/sample per FFT bin
+    for(const tr of tracks){
+      if(tr.frames.length < 2) continue;
+      for(let i=0;i<tr.frames.length-1;i++){
+        const a = tr.frames[i], b = tr.frames[i+1];
+        if(b.m !== a.m+1) continue; // only contiguous frames
+        const n0 = a.m*Hop + (L/2)|0;
+        const n1 = b.m*Hop + (L/2)|0;
+        const omegaA = a.k * binToRad;
+        const omegaB = b.k * binToRad;
+        let phase = (i===0) ? (Math.random()*2*Math.PI) : (tr._lastPhase || 0);
+        for(let n=n0; n<n1 && n<sig.length; n++){
+          const u = (n - n0)/(n1 - n0);
+          const omega = omegaA*(1-u) + omegaB*u;
+          const amp = a.amp*(1-u) + b.amp*u;
+          phase += omega;
+          sig[n] += (amp / 250) * Math.sin(phase); // scale to audio range
+        }
+        tr._lastPhase = phase;
+      }
+    }
+    // Normalise
+    let m = 0; for(let i=0;i<sig.length;i++) if(Math.abs(sig[i])>m) m = Math.abs(sig[i]);
+    if(m > 0) for(let i=0;i<sig.length;i++) sig[i] *= 0.9/m;
+    return sig;
+  }
+
+  bO.addEventListener('click', ()=>{ if(!cache) analyse(); playBuffer(cache.sig, SR); });
+  bR.addEventListener('click', ()=>{ if(!cache) analyse(); playBuffer(resynth(cache), SR); });
+  bD.addEventListener('click', ()=>{
+    if(!cache) analyse();
+    const r = resynth(cache);
+    const res = new Float32Array(cache.sig.length);
+    let sM=0, nM=0; for(let i=0;i<cache.sig.length;i++){ if(Math.abs(cache.sig[i])>sM) sM=Math.abs(cache.sig[i]); if(Math.abs(r[i])>nM) nM=Math.abs(r[i]); }
+    const sc = sM/(nM||1);
+    for(let i=0;i<res.length;i++) res[i] = cache.sig[i] - sc*r[i];
+    playBuffer(res, SR);
+  });
+  window.addEventListener('resize', draw);
+  [sigSel,delR,floR,lenS].forEach(el => el.addEventListener('input', draw));
+  setTimeout(draw, 120);
+})();
+
+// -- CH5: SMS deterministic + stochastic ----------------------
+(function ch5Demo(){
+  const c = document.getElementById('sms');
+  if(!c) return;
+  const sigSel = document.getElementById('smsSig');
+  const pR = document.getElementById('smsP'), pV = document.getElementById('smsPVal');
+  const bO = document.getElementById('smsO');
+  const bD = document.getElementById('smsD');
+  const bS = document.getElementById('smsS');
+  const readout = document.getElementById('smsRead');
+  const SR = 16000;
+  let W = 0, H = 360, ctx = null;
+  let cache = null;
+
+  function buildSig(){
+    const key = sigSel.value;
+    if(key==='voice') return sigVoicedVowel(SR, SR, 165);
+    if(key==='piano') return sigPianoNote(SR, SR);
+    // breath + tone
+    const out = sigVoicedVowel(SR, SR, 180);
+    let yn = 0;
+    for(let i=0;i<out.length;i++){
+      yn = 0.85*yn + 0.15*(Math.random()-0.5);
+      out[i] += 0.15*yn;
+    }
+    return out;
+  }
+
+  function compute(){
+    const sig = buildSig();
+    const L = 1024, Hop = 256;
+    const stft = computeSTFT(sig, L, Hop, WINDOWS.hann.fn);
+    const Pkeep = parseInt(pR.value,10);
+    // Reconstruct deterministic part by keeping only top-P peaks per frame (zero other bins)
+    const det = new Float32Array(sig.length);
+    const wOvlp = new Float32Array(sig.length);
+    const wSyn = WINDOWS.hann.fn(L);
+    const Nfft = stft.N;
+    // For each frame, keep spectrum only around top-P peaks, IFFT, OLA
+    for(let m=0;m<stft.frames.length;m++){
+      const fr = stft.frames[m];
+      // find peaks sorted by magnitude
+      const peaks = pickPeaks(fr.re, fr.im, -90);
+      peaks.sort((a,b)=>b.db - a.db);
+      const kept = peaks.slice(0, Pkeep);
+      const reF = new Float32Array(Nfft), imF = new Float32Array(Nfft);
+      const halfWidth = 4;
+      for(const p of kept){
+        const kc = Math.round(p.k);
+        for(let dk=-halfWidth; dk<=halfWidth; dk++){
+          const kk = kc + dk;
+          if(kk<=0 || kk>=Nfft/2) continue;
+          const gw = Math.exp(-0.5*dk*dk/2);
+          reF[kk] = fr.re[kk]*gw;
+          imF[kk] = fr.im[kk]*gw;
+          // conjugate symmetry
+          reF[Nfft-kk] = fr.re[kk]*gw;
+          imF[Nfft-kk] = -fr.im[kk]*gw;
+        }
+      }
+      fft(reF, imF, true);
+      const off = fr.off;
+      for(let n=0;n<L && (off+n)<det.length;n++){
+        det[off+n] += reF[n]*wSyn[n];
+        wOvlp[off+n] += wSyn[n]*wSyn[n];
+      }
+    }
+    for(let n=0;n<det.length;n++) if(wOvlp[n] > 1e-6) det[n] /= wOvlp[n];
+    // Residual
+    const res = new Float32Array(sig.length);
+    for(let n=0;n<sig.length;n++) res[n] = sig[n] - det[n];
+    cache = {sig, det, res, stft, L, Hop};
+    return cache;
+  }
+
+  function miniSpec(ctx, sig, x0, y0, w, h){
+    const L=512, Hop=128;
+    const st = computeSTFT(sig, L, Hop, WINDOWS.hann.fn);
+    let mx=1e-30;
+    const nF = st.frames.length, Nh = st.N>>1;
+    const K = Math.min(Nh, 160);
+    const mags = [];
+    for(const fr of st.frames){
+      const m = new Float32Array(K);
+      for(let k=0;k<K;k++){ const v = Math.hypot(fr.re[k], fr.im[k]); m[k]=v; if(v>mx) mx=v; }
+      mags.push(m);
+    }
+    const cw = w/nF, ch = h/K;
+    for(let f=0; f<nF; f++){
+      for(let k=0;k<K;k++){
+        const v = Math.max(0, Math.min(1, (20*Math.log10(mags[f][k]/mx + 1e-12) + 80)/80));
+        const col = viridisLike(v);
+        ctx.fillStyle=`rgb(${col[0]|0},${col[1]|0},${col[2]|0})`;
+        ctx.fillRect(x0 + f*cw, y0 + (K-1-k)*ch, Math.ceil(cw)+1, Math.ceil(ch)+1);
+      }
+    }
+  }
+
+  function draw(){
+    pV.textContent = pR.value;
+    const d = compute();
+    W = fitWidth(c);
+    ctx = setupCanvas(c, W, H);
+    ctx.fillStyle='#0f111a'; ctx.fillRect(0,0,W,H);
+    const padL=50, padR=10, padT=10, padB=24, gap=6;
+    const plotW = W - padL - padR;
+    const plotH = (H - padT - padB - 2*gap)/3;
+    miniSpec(ctx, d.sig, padL, padT,                 plotW, plotH);
+    miniSpec(ctx, d.det, padL, padT + plotH + gap,   plotW, plotH);
+    miniSpec(ctx, d.res, padL, padT + 2*(plotH+gap), plotW, plotH);
+    ctx.strokeStyle='#2a2d3a';
+    ctx.strokeRect(padL, padT, plotW, plotH);
+    ctx.strokeRect(padL, padT+plotH+gap, plotW, plotH);
+    ctx.strokeRect(padL, padT+2*(plotH+gap), plotW, plotH);
+    ctx.fillStyle='#e8a44a'; ctx.font='10px "Lucida Console", monospace';
+    ctx.fillText('original', padL+4, padT+12);
+    ctx.fillStyle='#4a9de8'; ctx.fillText('deterministic', padL+4, padT+plotH+gap+12);
+    ctx.fillStyle='#5ce89a'; ctx.fillText('residual', padL+4, padT+2*(plotH+gap)+12);
+
+    // Compute energy ratio
+    let Es=0, Ed=0, Er=0;
+    for(let i=0;i<d.sig.length;i++){ Es += d.sig[i]*d.sig[i]; Ed += d.det[i]*d.det[i]; Er += d.res[i]*d.res[i]; }
+    const ratio = 100*Ed/(Es + 1e-30);
+    readout.innerHTML = `P <span>${pR.value}</span> &middot; deterministic energy <span>${ratio.toFixed(1)}%</span> &middot; residual RMS <span>${Math.sqrt(Er/d.sig.length).toFixed(3)}</span>`;
+  }
+
+  bO.addEventListener('click', ()=>{ if(!cache) compute(); playBuffer(cache.sig, SR); });
+  bD.addEventListener('click', ()=>{ if(!cache) compute(); playBuffer(cache.det, SR); });
+  bS.addEventListener('click', ()=>{ if(!cache) compute(); playBuffer(cache.res, SR); });
+  window.addEventListener('resize', draw);
+  [sigSel,pR].forEach(el=>el.addEventListener('input', draw));
+  setTimeout(draw, 150);
+})();
+
+// -- Levinson-Durbin on autocorrelation r[0..p] -> a[1..p], g --
+function levinson(r, p){
+  const a = new Float64Array(p+1);
+  const aP = new Float64Array(p+1);
+  a[0] = 1;
+  let E = r[0];
+  for(let i=1;i<=p;i++){
+    let k = -r[i];
+    for(let j=1;j<i;j++) k -= a[j]*r[i-j];
+    if(Math.abs(E) < 1e-20) break;
+    k /= E;
+    // new a
+    for(let j=0;j<=i;j++) aP[j] = a[j];
+    aP[i] = k;
+    for(let j=1;j<i;j++) aP[j] = a[j] + k*a[i-j];
+    for(let j=0;j<=i;j++) a[j] = aP[j];
+    E *= (1 - k*k);
+  }
+  return {a, g: Math.sqrt(Math.max(0,E))};
+}
+
+// Autocorrelation (biased) of a signal, up to lag p
+function autocorr(x, p){
+  const r = new Float64Array(p+1);
+  const N = x.length;
+  for(let k=0;k<=p;k++){
+    let s = 0;
+    for(let n=0;n<N-k;n++) s += x[n]*x[n+k];
+    r[k] = s/N;
+  }
+  return r;
+}
+
+window.SASP.levinson = levinson;
+window.SASP.autocorr = autocorr;
+
+// -- CH6: LPC envelope on a vowel ------------------------------
+(function ch6Demo(){
+  const c = document.getElementById('envLPC');
+  if(!c) return;
+  const vS = document.getElementById('envV');
+  const pR = document.getElementById('envP'), pV = document.getElementById('envPVal');
+  const showSel = document.getElementById('envShow');
+  const readout = document.getElementById('envRead');
+  const SR = 16000;
+  let W=0, H=340, ctx=null;
+
+  function vowelSig(kind){
+    // Formants
+    const forms = {
+      a: [[730,1090,2440],[60,90,120]],
+      i: [[270,2290,3010],[50,80,120]],
+      u: [[300,870,2240],[50,80,120]],
+    }[kind];
+    const f0 = 140;
+    const N = SR;
+    const out = new Float32Array(N);
+    for(let n=0;n<N;n++){
+      const t = n/SR;
+      let v = 0;
+      for(let h=1;h<=30;h++){
+        const fh = f0*h;
+        if(fh > SR/2 - 50) break;
+        let w = 1/h;
+        for(let i=0;i<3;i++){
+          const d = (fh - forms[0][i])/forms[1][i];
+          w *= 1/(1 + d*d*0.6);
+        }
+        v += w*Math.sin(2*Math.PI*fh*t);
+      }
+      out[n] = 0.3*v;
+    }
+    return out;
+  }
+
+  function draw(){
+    pV.textContent = pR.value;
+    const kind = vS.value;
+    const sig = vowelSig(kind);
+    const p = parseInt(pR.value,10);
+    const show = showSel.value;
+    // Use a 2048-sample Hann-windowed frame in the middle
+    const L = 2048;
+    const frame = new Float32Array(L);
+    const w = WINDOWS.hann.fn(L);
+    const start = (sig.length - L)>>1;
+    for(let n=0;n<L;n++) frame[n] = sig[start+n]*w[n];
+    // DFT
+    let Nfft = 1; while(Nfft < L) Nfft <<= 1; Nfft <<= 1;
+    const re = new Float32Array(Nfft), im = new Float32Array(Nfft);
+    for(let n=0;n<L;n++) re[n] = frame[n];
+    fft(re, im, false);
+    const Nh = Nfft >> 1;
+    const mag = new Float32Array(Nh);
+    let mx = 1e-30;
+    for(let k=0;k<Nh;k++){ mag[k] = Math.hypot(re[k], im[k]); if(mag[k]>mx) mx=mag[k]; }
+    const dB = new Float32Array(Nh);
+    for(let k=0;k<Nh;k++) dB[k] = 20*Math.log10(Math.max(1e-12, mag[k]/mx));
+
+    // LPC envelope
+    const r = autocorr(frame, p);
+    const {a, g} = levinson(r, p);
+    const lpcDb = new Float32Array(Nh);
+    for(let k=0;k<Nh;k++){
+      const omega = Math.PI*k/Nh;
+      let aR = 0, aI = 0;
+      for(let i=0;i<=p;i++){
+        aR += a[i]*Math.cos(-i*omega);
+        aI += a[i]*Math.sin(-i*omega);
+      }
+      const denom = aR*aR + aI*aI;
+      const HH = g*g / Math.max(denom, 1e-20);
+      lpcDb[k] = 10*Math.log10(HH);
+    }
+    // Normalise LPC curve to match spectrum's peak
+    let mxL = -Infinity; for(let k=0;k<Nh;k++) if(lpcDb[k]>mxL) mxL = lpcDb[k];
+    for(let k=0;k<Nh;k++) lpcDb[k] += (0 - mxL);
+
+    // Cepstral envelope: IFFT of log|X|, keep low-quefrency
+    const logMag = new Float32Array(Nfft);
+    const logIm  = new Float32Array(Nfft);
+    for(let k=0;k<Nh;k++){
+      logMag[k] = Math.log(Math.max(1e-12, mag[k]));
+      logMag[Nfft-1-k] = logMag[k];
+    }
+    logMag[Nfft-1] = logMag[0];
+    fft(logMag, logIm, true);
+    const Q = 40;
+    for(let n=Q; n<Nfft-Q; n++){ logMag[n] = 0; logIm[n] = 0; }
+    fft(logMag, logIm, false);
+    const cepDb = new Float32Array(Nh);
+    let mxC = -Infinity;
+    for(let k=0;k<Nh;k++){ cepDb[k] = 20*logMag[k]/Math.log(10); if(cepDb[k]>mxC) mxC = cepDb[k]; }
+    for(let k=0;k<Nh;k++) cepDb[k] -= mxC;
+
+    // Draw
+    W = fitWidth(c);
+    ctx = setupCanvas(c, W, H);
+    ctx.fillStyle='#0f111a'; ctx.fillRect(0,0,W,H);
+    const padL=48, padR=12, padT=12, padB=24;
+    const plotW = W-padL-padR, plotH = H-padT-padB;
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL,padT,plotW,plotH);
+    const dBmin = -70, dBmax = 5;
+    ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace';
+    for(let g1=0;g1>=-60;g1-=10){
+      const y = padT + ((dBmax-g1)/(dBmax-dBmin))*plotH;
+      ctx.strokeStyle='#1a1d2a'; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y); ctx.stroke();
+      ctx.fillStyle='#8a8d9a'; ctx.fillText(String(g1), 4, y+3);
+    }
+    // Spectrum (blue)
+    ctx.strokeStyle='#4a9de8'; ctx.lineWidth=1; ctx.beginPath();
+    // Show 0..4 kHz
+    const Khi = Math.min(Nh, Math.floor(Nh*4000/(SR/2)));
+    for(let k=0;k<Khi;k++){
+      const x = padL + (k/Khi)*plotW;
+      const v = Math.max(dBmin, dB[k]);
+      const y = padT + ((dBmax-v)/(dBmax-dBmin))*plotH;
+      if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // LPC (orange)
+    if(show==='lpc' || show==='both'){
+      ctx.strokeStyle='#e8a44a'; ctx.lineWidth=1.8; ctx.beginPath();
+      for(let k=0;k<Khi;k++){
+        const x = padL + (k/Khi)*plotW;
+        const v = Math.max(dBmin, lpcDb[k]);
+        const y = padT + ((dBmax-v)/(dBmax-dBmin))*plotH;
+        if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    // Cepstral (green)
+    if(show==='cep' || show==='both'){
+      ctx.strokeStyle='#5ce89a'; ctx.lineWidth=1.8; ctx.beginPath();
+      for(let k=0;k<Khi;k++){
+        const x = padL + (k/Khi)*plotW;
+        const v = Math.max(dBmin, cepDb[k]);
+        const y = padT + ((dBmax-v)/(dBmax-dBmin))*plotH;
+        if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    // Formant ticks from LPC peaks
+    const peaks = [];
+    for(let k=3;k<Khi-3;k++){ if(lpcDb[k]>lpcDb[k-1] && lpcDb[k]>lpcDb[k+1] && lpcDb[k] > -30) peaks.push(k); }
+    ctx.strokeStyle='#e85a7a'; ctx.lineWidth=1.2;
+    ctx.fillStyle='#e85a7a';
+    for(const kk of peaks){
+      const x = padL + (kk/Khi)*plotW;
+      ctx.beginPath(); ctx.moveTo(x, padT+plotH); ctx.lineTo(x, padT+plotH-10); ctx.stroke();
+      const Hz = kk*(SR/2)/Nh;
+      ctx.fillText(Hz.toFixed(0), x-12, padT+plotH-14);
+    }
+    // frequency axis label
+    ctx.fillStyle='#8a8d9a';
+    for(let fHz=0; fHz<=4000; fHz+=1000){
+      const x = padL + (fHz/(SR/2 * Khi/Nh * 1) * plotW / (Khi));
+      // simplification
+    }
+    ctx.fillText('0', padL, H-6);
+    ctx.fillText('4 kHz', padL+plotW-40, H-6);
+
+    readout.innerHTML = `vowel <span>${kind}</span> &middot; order p <span>${p}</span> &middot; formants <span>${peaks.map(k=>(k*(SR/2)/Nh).toFixed(0)).join(', ')}</span> Hz`;
+  }
+  window.addEventListener('resize', draw);
+  [vS, pR, showSel].forEach(el => el.addEventListener('input', draw));
+  setTimeout(draw, 180);
+})();
+
+// -- CH7: YIN pitch detector ----------------------------------
+(function ch7Demo(){
+  const c = document.getElementById('yin');
+  if(!c) return;
+  const fR = document.getElementById('yinF'), fV = document.getElementById('yinFVal');
+  const sR = document.getElementById('yinS'), sV = document.getElementById('yinSVal');
+  const tR = document.getElementById('yinT'), tV = document.getElementById('yinTVal');
+  const playBtn = document.getElementById('yinPlay');
+  const readout = document.getElementById('yinRead');
+  const SR = 16000;
+  let ctx=null, W=0, H=360;
+
+  function buildSig(f0, snrDb){
+    const N = SR;
+    const out = new Float32Array(N);
+    for(let n=0;n<N;n++){
+      const t = n/SR;
+      let v = 0;
+      for(let h=1;h<=8;h++) v += (1/h)*Math.sin(2*Math.PI*f0*h*t);
+      out[n] = 0.3*v;
+    }
+    // Add noise at specified SNR
+    const sigPow = 0.3*0.3*0.5; // rough
+    const noisePow = sigPow * Math.pow(10, -snrDb/10);
+    const na = Math.sqrt(noisePow);
+    for(let n=0;n<N;n++) out[n] += na*(Math.random()-0.5)*2;
+    return out;
+  }
+
+  function yin(x, threshold){
+    const L = x.length;
+    const maxTau = Math.min(L>>1, 1600);
+    // Difference function
+    const d = new Float32Array(maxTau);
+    for(let tau=1; tau<maxTau; tau++){
+      let s = 0;
+      for(let n=0;n<L-tau;n++){
+        const diff = x[n] - x[n+tau];
+        s += diff*diff;
+      }
+      d[tau] = s;
+    }
+    // Cumulative mean normalized difference
+    const dP = new Float32Array(maxTau);
+    dP[0] = 1;
+    let cum = 0;
+    for(let tau=1; tau<maxTau; tau++){
+      cum += d[tau];
+      dP[tau] = d[tau] * tau / Math.max(cum, 1e-30);
+    }
+    // First tau below threshold, then local min
+    let tauEst = -1;
+    for(let tau=2; tau<maxTau-1; tau++){
+      if(dP[tau] < threshold){
+        while(tau+1 < maxTau && dP[tau+1] < dP[tau]) tau++;
+        tauEst = tau;
+        break;
+      }
+    }
+    if(tauEst < 0){
+      // fallback: global minimum
+      let m = 1, mI = 0;
+      for(let tau=2;tau<maxTau;tau++) if(dP[tau] < m){ m = dP[tau]; mI = tau; }
+      tauEst = mI;
+    }
+    // Parabolic interpolation around tauEst
+    let fine = tauEst;
+    if(tauEst > 1 && tauEst < maxTau-1){
+      const a = dP[tauEst-1], b = dP[tauEst], cc = dP[tauEst+1];
+      const denom = a - 2*b + cc;
+      if(Math.abs(denom) > 1e-12) fine = tauEst + 0.5*(a-cc)/denom;
+    }
+    return {d, dP, tau: fine};
+  }
+
+  let cachedSig = null;
+
+  function draw(){
+    fV.textContent = fR.value; sV.textContent = sR.value; tV.textContent = parseFloat(tR.value).toFixed(2);
+    const f0 = parseFloat(fR.value);
+    const snr = parseFloat(sR.value);
+    const thresh = parseFloat(tR.value);
+    const sig = buildSig(f0, snr);
+    cachedSig = sig;
+    // Analyse central 0.25 second frame
+    const L = 4096;
+    const start = (sig.length - L)>>1;
+    const frame = sig.slice(start, start+L);
+    const res = yin(frame, thresh);
+    const estF = SR / res.tau;
+
+    W = fitWidth(c);
+    ctx = setupCanvas(c, W, H);
+    ctx.fillStyle='#0f111a'; ctx.fillRect(0,0,W,H);
+    const padL=50, padR=12, padT=12, padB=24, gap=8;
+    const plotW = W-padL-padR;
+    const plotH = (H - padT - padB - gap)/2;
+    const topY = padT;
+    const botY = padT + plotH + gap;
+    const maxTau = res.d.length;
+
+    // Normalise d for display
+    let dmax = 1e-30; for(let i=1;i<maxTau;i++) if(res.d[i]>dmax) dmax = res.d[i];
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, topY, plotW, plotH);
+    ctx.strokeStyle='#4a9de8'; ctx.lineWidth=1.2; ctx.beginPath();
+    for(let i=1;i<maxTau;i++){
+      const x = padL + ((i-1)/(maxTau-2))*plotW;
+      const y = topY + (1 - res.d[i]/dmax)*plotH;
+      if(i===1) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace'; ctx.fillText('d(\u03C4)', padL+4, topY+12);
+
+    // Bottom: d'
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, botY, plotW, plotH);
+    // threshold line
+    const yTh = botY + Math.min(1, thresh)*plotH;
+    ctx.strokeStyle='#b06ae8'; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(padL,yTh); ctx.lineTo(padL+plotW,yTh); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle='#5ce89a'; ctx.lineWidth=1.2; ctx.beginPath();
+    for(let i=1;i<maxTau;i++){
+      const x = padL + ((i-1)/(maxTau-2))*plotW;
+      const y = botY + Math.min(1.4, res.dP[i])*plotH*0.7;
+      if(i===1) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.fillStyle='#8a8d9a'; ctx.fillText("d'(\u03C4)", padL+4, botY+12);
+
+    // Detected tau as orange vertical on both
+    const xT = padL + ((res.tau-1)/(maxTau-2))*plotW;
+    ctx.strokeStyle='#e8a44a'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(xT, topY); ctx.lineTo(xT, topY+plotH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xT, botY); ctx.lineTo(xT, botY+plotH); ctx.stroke();
+
+    // X-axis ticks in Hz
+    ctx.fillStyle='#8a8d9a';
+    for(let fHz=100; fHz<=1000; fHz+=100){
+      const tau = SR/fHz;
+      if(tau < 2 || tau > maxTau-1) continue;
+      const x = padL + ((tau-1)/(maxTau-2))*plotW;
+      ctx.fillText(String(fHz), x-10, H-6);
+    }
+
+    const err = 1200 * Math.log2(estF/f0);
+    readout.innerHTML = `true <span>${f0.toFixed(1)}</span> Hz &middot; detected <span>${estF.toFixed(2)}</span> Hz &middot; error <span>${err.toFixed(1)}</span> cents &middot; &tau; <span>${res.tau.toFixed(2)}</span> samples`;
+  }
+  window.addEventListener('resize', draw);
+  [fR,sR,tR].forEach(el=>el.addEventListener('input', draw));
+  playBtn.addEventListener('click', ()=>{ if(cachedSig) playBuffer(cachedSig, SR); });
+  setTimeout(draw, 200);
+})();
+
+// -- CH8: Time-frequency reassignment -------------------------
+(function ch8Demo(){
+  const c = document.getElementById('reass');
+  if(!c) return;
+  const sigS = document.getElementById('rSig');
+  const lenS = document.getElementById('rL');
+  const onChk = document.getElementById('rOn');
+  let ctx=null, W=0, H=420;
+  const SR = 16000;
+
+  function buildSig(kind){
+    const N = SR;
+    const out = new Float32Array(N);
+    if(kind==='chirp'){
+      const f0 = 200, f1 = 3000, T = N/SR;
+      const kc = (f1 - f0)/T;
+      for(let n=0;n<N;n++){
+        const t = n/SR;
+        const ph = 2*Math.PI*(f0*t + 0.5*kc*t*t);
+        out[n] = 0.4*Math.sin(ph);
+      }
+    } else if(kind==='bell'){
+      const parts = [523, 880, 1320, 1870, 2700];
+      for(let i=0;i<parts.length;i++){
+        const d = 1.2 - i*0.14;
+        for(let n=0;n<N;n++){
+          const t = n/SR;
+          const env = Math.exp(-d*t);
+          out[n] += (0.3/parts.length)*env*Math.sin(2*Math.PI*parts[i]*t + i);
+        }
+      }
+    } else {
+      // chirp + bell + impulse
+      const f0 = 300, f1 = 2500, T = N/SR;
+      const kc = (f1 - f0)/T;
+      for(let n=0;n<N;n++){
+        const t = n/SR;
+        const ph = 2*Math.PI*(f0*t + 0.5*kc*t*t);
+        out[n] += 0.25*Math.sin(ph);
+      }
+      const parts = [700, 1400, 2100];
+      for(let i=0;i<parts.length;i++){
+        for(let n=0;n<N;n++){
+          const t = n/SR;
+          out[n] += 0.1*Math.exp(-2*t)*Math.sin(2*Math.PI*parts[i]*t + i);
+        }
+      }
+      // impulse at t=0.5s
+      const imp = Math.floor(0.5*SR);
+      if(imp < N) out[imp] += 0.9;
+      if(imp+1 < N) out[imp+1] += 0.6;
+    }
+    return out;
+  }
+
+  function stftWith(sig, L, H, win){
+    const nF = Math.max(1, Math.floor((sig.length - L)/H)+1);
+    let Nfft = 1; while(Nfft < L) Nfft <<= 1;
+    const frames = [];
+    for(let m=0;m<nF;m++){
+      const re = new Float32Array(Nfft), im = new Float32Array(Nfft);
+      const off = m*H;
+      for(let n=0;n<L;n++) re[n] = sig[off+n]*win[n];
+      fft(re, im, false);
+      frames.push({re, im});
+    }
+    return {frames, N: Nfft};
+  }
+
+  function draw(){
+    const sig = buildSig(sigS.value);
+    const L = parseInt(lenS.value, 10);
+    const Hop = Math.max(16, L>>3);
+    const win = WINDOWS.hann.fn(L);
+    // time-ramp window and window derivative
+    const winT = new Float32Array(L); for(let n=0;n<L;n++) winT[n] = (n - (L-1)/2) * win[n];
+    const winD = new Float32Array(L);
+    for(let n=0;n<L;n++){
+      // derivative of Hann: -0.5 * 2*pi/(L-1) * sin(2*pi*n/(L-1))
+      winD[n] = - Math.PI/(L-1) * Math.sin(2*Math.PI*n/(L-1));
+    }
+    const X  = stftWith(sig, L, Hop, win);
+    const Xt = stftWith(sig, L, Hop, winT);
+    const Xd = stftWith(sig, L, Hop, winD);
+
+    const nF = X.frames.length;
+    const Nfft = X.N, Nh = Nfft>>1;
+    // magnitude grid
+    let mx = 1e-30;
+    const mag = [];
+    for(let m=0;m<nF;m++){
+      const row = new Float32Array(Nh);
+      for(let k=0;k<Nh;k++){
+        const v = Math.hypot(X.frames[m].re[k], X.frames[m].im[k]);
+        row[k] = v; if(v>mx) mx = v;
+      }
+      mag.push(row);
+    }
+    W = fitWidth(c);
+    ctx = setupCanvas(c, W, H);
+    ctx.fillStyle='#0a0b0f'; ctx.fillRect(0,0,W,H);
+    const padL=44, padR=10, padT=10, padB=24, gap=8;
+    const plotW = W-padL-padR;
+    const plotH = (H - padT - padB - gap)/2;
+    const topY = padT, botY = padT + plotH + gap;
+
+    // Show 0..Kshow
+    const Kshow = Math.min(Nh, Math.floor(Nh*0.5));
+    const cw = plotW/nF;
+    // Top: ordinary
+    for(let m=0;m<nF;m++){
+      for(let k=0;k<Kshow;k++){
+        const v = Math.max(0, Math.min(1, (20*Math.log10(mag[m][k]/mx+1e-12)+70)/70));
+        const col = viridisLike(v);
+        ctx.fillStyle=`rgb(${col[0]|0},${col[1]|0},${col[2]|0})`;
+        ctx.fillRect(padL + m*cw, topY + (Kshow-1-k)*plotH/Kshow, Math.ceil(cw)+1, Math.ceil(plotH/Kshow)+1);
+      }
+    }
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, topY, plotW, plotH);
+    ctx.fillStyle='#e8a44a'; ctx.font='10px "Lucida Console", monospace';
+    ctx.fillText('ordinary spectrogram', padL+6, topY+12);
+
+    // Bottom: reassigned
+    ctx.fillStyle='#0a0b0f'; ctx.fillRect(padL, botY, plotW, plotH);
+    if(onChk.checked){
+      // Accumulator grid
+      const gridTFx = 1;
+      const gridFy = 1;
+      for(let m=0;m<nF;m++){
+        for(let k=0;k<Kshow;k++){
+          const Xre = X.frames[m].re[k], Xim = X.frames[m].im[k];
+          const absX2 = Xre*Xre + Xim*Xim;
+          if(absX2 < 1e-14) continue;
+          // Xt/X real part gives time offset in samples
+          const XtRe = Xt.frames[m].re[k], XtIm = Xt.frames[m].im[k];
+          const tReNum = (XtRe*Xre + XtIm*Xim)/absX2;
+          // Xd/X imaginary part gives freq offset (neg)
+          const XdRe = Xd.frames[m].re[k], XdIm = Xd.frames[m].im[k];
+          const wImNum = (XdIm*Xre - XdRe*Xim)/absX2; // Im{Xd/X}
+          // reassigned t in frame-centre samples
+          const tHat = m*Hop + (L-1)/2 + tReNum;
+          const omegaHat = (2*Math.PI*k/Nfft) - wImNum; // rad/sample
+          const kHat = omegaHat * Nfft / (2*Math.PI);
+          const mHat = tHat/Hop;
+          const x = padL + mHat*cw;
+          const y = botY + (1 - kHat/Kshow)*plotH;
+          if(x < padL || x > padL+plotW) continue;
+          if(y < botY || y > botY+plotH) continue;
+          const v = Math.max(0, Math.min(1, (20*Math.log10(Math.sqrt(absX2)/mx+1e-12)+60)/60));
+          const col = viridisLike(v);
+          ctx.fillStyle=`rgba(${col[0]|0},${col[1]|0},${col[2]|0},0.8)`;
+          ctx.fillRect(x-0.5, y-0.5, 1.2, 1.2);
+        }
+      }
+    } else {
+      // Just show the ordinary again
+      for(let m=0;m<nF;m++){
+        for(let k=0;k<Kshow;k++){
+          const v = Math.max(0, Math.min(1, (20*Math.log10(mag[m][k]/mx+1e-12)+70)/70));
+          const col = viridisLike(v);
+          ctx.fillStyle=`rgb(${col[0]|0},${col[1]|0},${col[2]|0})`;
+          ctx.fillRect(padL + m*cw, botY + (Kshow-1-k)*plotH/Kshow, Math.ceil(cw)+1, Math.ceil(plotH/Kshow)+1);
+        }
+      }
+    }
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, botY, plotW, plotH);
+    ctx.fillStyle='#5ce89a'; ctx.fillText(onChk.checked ? 'reassigned' : 'ordinary (reassign off)', padL+6, botY+12);
+  }
+  window.addEventListener('resize', draw);
+  [sigS, lenS, onChk].forEach(el => el.addEventListener('input', draw));
+  setTimeout(draw, 220);
+})();
+
+// -- CH9: Chirp-z transform -----------------------------------
+(function ch9Demo(){
+  const c = document.getElementById('czt');
+  if(!c) return;
+  const fR = document.getElementById('czF'), fV = document.getElementById('czFVal');
+  const wR = document.getElementById('czW'), wV = document.getElementById('czWVal');
+  const rR = document.getElementById('czR'), rV = document.getElementById('czRVal');
+  const readout = document.getElementById('czRead');
+  const SR = 16000;
+  let ctx=null, W=0, H=380;
+
+  // Direct CZT (not using the Bluestein trick; N is small enough)
+  function czt(x, M, W_ratio_re, W_ratio_im, A_start_re, A_start_im){
+    const N = x.length;
+    const Xr = new Float32Array(M), Xi = new Float32Array(M);
+    // Precompute A^-n and cumulative W^n in spiral form
+    for(let k=0;k<M;k++){
+      // Spiral point z_k = A * W^(-k)  for DFT-like form; but we use X_k = sum x[n] A^-n W^{nk}
+      let sR = 0, sI = 0;
+      // spiral step for this k: A^-n * W^{nk} = (A^-1 * W^k)^n
+      // compute z = A^-1 * W^k
+      // A = Ar + j Ai
+      const Amag2 = A_start_re*A_start_re + A_start_im*A_start_im;
+      const Ainv_re = A_start_re / Amag2;
+      const Ainv_im = -A_start_im / Amag2;
+      // W^k
+      let Wk_re = 1, Wk_im = 0;
+      for(let i=0;i<k;i++){
+        const nr = Wk_re*W_ratio_re - Wk_im*W_ratio_im;
+        const ni = Wk_re*W_ratio_im + Wk_im*W_ratio_re;
+        Wk_re = nr; Wk_im = ni;
+      }
+      // z = Ainv * Wk
+      let zr = Ainv_re*Wk_re - Ainv_im*Wk_im;
+      let zi = Ainv_re*Wk_im + Ainv_im*Wk_re;
+      // accumulate sum x[n] * z^n
+      let pr = 1, pi = 0;
+      for(let n=0;n<N;n++){
+        sR += x[n]*pr;
+        sI += x[n]*pi;
+        const nr = pr*zr - pi*zi;
+        const ni = pr*zi + pi*zr;
+        pr = nr; pi = ni;
+      }
+      Xr[k] = sR; Xi[k] = sI;
+    }
+    return {re: Xr, im: Xi};
+  }
+
+  // Signal: multi-partial with one interesting peak
+  function buildSig(){
+    const N = 2048;
+    const out = new Float32Array(N);
+    const parts = [440, 660, 820, 1250, 1870, 2560];
+    for(let n=0;n<N;n++){
+      const t = n/SR;
+      let v = 0;
+      for(let i=0;i<parts.length;i++){
+        v += (1/(i+1))*Math.sin(2*Math.PI*parts[i]*t);
+      }
+      const env = Math.min(1, n/100)*Math.min(1, (N-n)/100);
+      out[n] = 0.35*env*v;
+    }
+    return out;
+  }
+
+  function draw(){
+    fV.textContent = fR.value; wV.textContent = wR.value; rV.textContent = parseFloat(rR.value).toFixed(3);
+    const fc = parseFloat(fR.value);
+    const sp = parseFloat(wR.value);
+    const rad = parseFloat(rR.value);
+    const sig = buildSig();
+
+    // Full DFT for reference
+    let Nfft = 1; while(Nfft < sig.length) Nfft <<= 1;
+    const re = new Float32Array(Nfft), im = new Float32Array(Nfft);
+    for(let n=0;n<sig.length;n++) re[n] = sig[n];
+    fft(re, im, false);
+    const Nh = Nfft>>1;
+    const fullDb = new Float32Array(Nh);
+    let mx = 1e-30;
+    for(let k=0;k<Nh;k++){ const m = Math.hypot(re[k], im[k]); if(m>mx) mx=m; fullDb[k] = m; }
+    for(let k=0;k<Nh;k++) fullDb[k] = 20*Math.log10(fullDb[k]/mx+1e-12);
+
+    // CZT: M points along spiral from f_lo to f_hi, radius rad
+    const M = 384;
+    const fLo = Math.max(10, fc - sp/2);
+    const fHi = Math.min(SR/2-10, fc + sp/2);
+    const thetaLo = 2*Math.PI*fLo/SR;
+    const thetaHi = 2*Math.PI*fHi/SR;
+    const dTheta = (thetaHi - thetaLo)/(M-1);
+    // A = rad * e^{j thetaLo}
+    const A_re = rad*Math.cos(thetaLo), A_im = rad*Math.sin(thetaLo);
+    // W = e^{-j dTheta}  (so W^k rotates forward by dTheta each step)
+    const Wr = Math.cos(-dTheta), Wi = Math.sin(-dTheta);
+    const Z = czt(sig, M, Wr, Wi, A_re, A_im);
+    const cztDb = new Float32Array(M);
+    let mx2 = 1e-30;
+    for(let k=0;k<M;k++){ cztDb[k] = Math.hypot(Z.re[k], Z.im[k]); if(cztDb[k]>mx2) mx2=cztDb[k]; }
+    for(let k=0;k<M;k++) cztDb[k] = 20*Math.log10(cztDb[k]/mx+1e-12);
+
+    W = fitWidth(c);
+    ctx = setupCanvas(c, W, H);
+    ctx.fillStyle='#0f111a'; ctx.fillRect(0,0,W,H);
+
+    // Left: z-plane with unit circle and spiral
+    const leftW = Math.min(220, Math.floor(W*0.3));
+    const leftX = 10, leftY = 10;
+    const leftH = H - 20;
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(leftX, leftY, leftW, leftH);
+    const cxZ = leftX + leftW/2, cyZ = leftY + leftH/2;
+    const R = Math.min(leftW, leftH)*0.42;
+    ctx.strokeStyle='#4a9de8'; ctx.lineWidth=1; ctx.beginPath();
+    ctx.arc(cxZ, cyZ, R, 0, 2*Math.PI); ctx.stroke();
+    ctx.strokeStyle='#8a8d9a'; ctx.beginPath(); ctx.moveTo(leftX, cyZ); ctx.lineTo(leftX+leftW, cyZ); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cxZ, leftY); ctx.lineTo(cxZ, leftY+leftH); ctx.stroke();
+    // Spiral
+    ctx.strokeStyle='#e8a44a'; ctx.lineWidth=1.8; ctx.beginPath();
+    for(let k=0;k<M;k++){
+      const theta = thetaLo + k*dTheta;
+      const rr = rad * R;
+      const x = cxZ + rr*Math.cos(theta);
+      const y = cyZ - rr*Math.sin(theta);
+      if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace';
+    ctx.fillText('z-plane', leftX+6, leftY+14);
+
+    // Right: spectrum plot
+    const padL = leftX + leftW + 20;
+    const plotW = W - padL - 10;
+    const plotH = H - 40;
+    const plotY = 20;
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, plotY, plotW, plotH);
+    const dBmin = -80, dBmax = 5;
+    // y grid
+    ctx.fillStyle='#8a8d9a';
+    for(let g=0;g>=-60;g-=20){
+      const y = plotY + ((dBmax-g)/(dBmax-dBmin))*plotH;
+      ctx.strokeStyle='#1a1d2a'; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y); ctx.stroke();
+      ctx.fillStyle='#8a8d9a'; ctx.fillText(String(g), padL-26, y+3);
+    }
+    // Full DFT in blue, only span around [0, 4 kHz] for context
+    const fMax = 4000;
+    const Khi = Math.min(Nh-1, Math.floor(fMax*Nfft/SR));
+    ctx.strokeStyle='#4a9de8'; ctx.lineWidth=1; ctx.beginPath();
+    for(let k=0;k<Khi;k++){
+      const fk = k*SR/Nfft;
+      const x = padL + (fk/fMax)*plotW;
+      const v = Math.max(dBmin, fullDb[k]);
+      const y = plotY + ((dBmax-v)/(dBmax-dBmin))*plotH;
+      if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // CZT in orange, only over [fLo, fHi]
+    ctx.strokeStyle='#e8a44a'; ctx.lineWidth=1.6; ctx.beginPath();
+    for(let k=0;k<M;k++){
+      const fk = fLo + (k/(M-1))*(fHi - fLo);
+      if(fk > fMax) break;
+      const x = padL + (fk/fMax)*plotW;
+      const v = Math.max(dBmin, cztDb[k]);
+      const y = plotY + ((dBmax-v)/(dBmax-dBmin))*plotH;
+      if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // CZT band markers
+    ctx.strokeStyle='#b06ae8'; ctx.setLineDash([3,3]);
+    const xLo = padL + (fLo/fMax)*plotW;
+    const xHi = padL + (Math.min(fMax,fHi)/fMax)*plotW;
+    ctx.beginPath(); ctx.moveTo(xLo,plotY); ctx.lineTo(xLo,plotY+plotH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xHi,plotY); ctx.lineTo(xHi,plotY+plotH); ctx.stroke();
+    ctx.setLineDash([]);
+    // Axes
+    ctx.fillStyle='#8a8d9a';
+    for(let fHz=0; fHz<=fMax; fHz+=1000){
+      const x = padL + (fHz/fMax)*plotW;
+      ctx.fillText(String(fHz), x-10, H-8);
+    }
+
+    const cztRes = (fHi - fLo)/M;
+    const dftRes = SR/Nfft;
+    readout.innerHTML = `centre <span>${fc.toFixed(0)}</span> Hz &middot; span <span>${sp.toFixed(0)}</span> Hz &middot; radius <span>${rad.toFixed(3)}</span> &middot; CZT step <span>${cztRes.toFixed(3)}</span> Hz vs DFT step <span>${dftRes.toFixed(2)}</span> Hz`;
+  }
+  window.addEventListener('resize', draw);
+  [fR,wR,rR].forEach(el=>el.addEventListener('input', draw));
+  setTimeout(draw, 240);
+})();
+
+// -- CH10: Levinson-Durbin visualiser -------------------------
+(function ch10Demo(){
+  const c = document.getElementById('lev');
+  if(!c) return;
+  const vS = document.getElementById('levV');
+  const pR = document.getElementById('levP'), pV = document.getElementById('levPVal');
+  const readout = document.getElementById('levRead');
+  const SR = 16000;
+  let ctx=null, W=0, Hgt=340;
+
+  function vowelSig(kind){
+    const forms = {
+      a: [[730,1090,2440],[60,90,120]],
+      i: [[270,2290,3010],[50,80,120]],
+      u: [[300,870,2240],[50,80,120]],
+    }[kind];
+    const f0 = 140;
+    const N = 2048;
+    const out = new Float32Array(N);
+    for(let n=0;n<N;n++){
+      const t = n/SR;
+      let v = 0;
+      for(let h=1;h<=30;h++){
+        const fh = f0*h; if(fh > SR/2-50) break;
+        let w = 1/h;
+        for(let i=0;i<3;i++){
+          const d = (fh - forms[0][i])/forms[1][i];
+          w *= 1/(1 + d*d*0.6);
+        }
+        v += w*Math.sin(2*Math.PI*fh*t);
+      }
+      out[n] = 0.3*v;
+    }
+    return out;
+  }
+
+  // Return reflection coeffs k_i for i=1..p and prediction-error powers E_i for i=0..p
+  function levinsonFull(r, p){
+    const a = new Float64Array(p+1);
+    const aP = new Float64Array(p+1);
+    a[0] = 1;
+    const ks = new Float64Array(p+1); // k[1..p]
+    const E  = new Float64Array(p+1);
+    E[0] = r[0];
+    for(let i=1;i<=p;i++){
+      let k = -r[i];
+      for(let j=1;j<i;j++) k -= a[j]*r[i-j];
+      if(Math.abs(E[i-1]) < 1e-20){ ks[i] = 0; E[i] = E[i-1]; continue; }
+      k /= E[i-1];
+      for(let j=0;j<=i;j++) aP[j] = a[j];
+      aP[i] = k;
+      for(let j=1;j<i;j++) aP[j] = a[j] + k*a[i-j];
+      for(let j=0;j<=i;j++) a[j] = aP[j];
+      E[i] = E[i-1]*(1 - k*k);
+      ks[i] = k;
+    }
+    return {ks, E};
+  }
+
+  function draw(){
+    pV.textContent = pR.value;
+    const kind = vS.value;
+    const sig = vowelSig(kind);
+    const p = parseInt(pR.value,10);
+    // Hann window
+    const L = sig.length;
+    const w = WINDOWS.hann.fn(L);
+    const x = new Float32Array(L);
+    for(let n=0;n<L;n++) x[n] = sig[n]*w[n];
+    const r = autocorr(x, p);
+    const {ks, E} = levinsonFull(r, p);
+
+    W = fitWidth(c);
+    ctx = setupCanvas(c, W, Hgt);
+    ctx.fillStyle='#0f111a'; ctx.fillRect(0,0,W,Hgt);
+    const padL=50, padR=10, padT=12, padB=24, gap=14;
+    const halfW = (W - padL - padR - gap)/2;
+    const plotH = Hgt - padT - padB;
+
+    // Left: bar chart of k_i
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, padT, halfW, plotH);
+    ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace';
+    ctx.fillText('reflection coefficients k_i', padL+4, padT+12);
+    // mid line
+    const midY = padT + plotH/2;
+    ctx.strokeStyle='#1a1d2a'; ctx.beginPath(); ctx.moveTo(padL, midY); ctx.lineTo(padL+halfW, midY); ctx.stroke();
+    const barW = halfW / (p+1);
+    let maxAbsK = 0;
+    for(let i=1;i<=p;i++) maxAbsK = Math.max(maxAbsK, Math.abs(ks[i]));
+    const scale = maxAbsK > 0.02 ? maxAbsK : 0.5;
+    for(let i=1;i<=p;i++){
+      const k = ks[i];
+      const x0 = padL + i*barW;
+      const h = Math.min(plotH/2-2, (Math.abs(k)/scale)*plotH/2*0.95);
+      ctx.fillStyle = (Math.abs(k) < 1) ? '#5ce89a' : '#e85a7a';
+      if(k >= 0) ctx.fillRect(x0 + 2, midY - h, barW-4, h);
+      else ctx.fillRect(x0 + 2, midY, barW-4, h);
+    }
+    // axis label
+    ctx.fillStyle='#8a8d9a';
+    ctx.fillText('i = 1..' + p, padL+4, Hgt-6);
+
+    // Right: E_i (dB) vs i
+    const rx0 = padL + halfW + gap;
+    ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(rx0, padT, halfW, plotH);
+    ctx.fillStyle='#8a8d9a'; ctx.fillText('log E_i (prediction-error power)', rx0+4, padT+12);
+    // dB scale
+    const Edb = new Float64Array(p+1);
+    let Emx = -Infinity, Emn = Infinity;
+    for(let i=0;i<=p;i++){ Edb[i] = 10*Math.log10(Math.max(1e-30, E[i])); if(Edb[i]>Emx) Emx=Edb[i]; if(Edb[i]<Emn) Emn=Edb[i]; }
+    const rng = Math.max(1, Emx - Emn);
+    ctx.strokeStyle='#4a9de8'; ctx.lineWidth=1.5; ctx.beginPath();
+    for(let i=0;i<=p;i++){
+      const x0 = rx0 + (i/p)*halfW;
+      const y = padT + (1 - (Edb[i]-Emn)/rng) * plotH;
+      if(i===0) ctx.moveTo(x0,y); else ctx.lineTo(x0,y);
+    }
+    ctx.stroke();
+    // dots
+    ctx.fillStyle='#e8a44a';
+    for(let i=0;i<=p;i++){
+      const x0 = rx0 + (i/p)*halfW;
+      const y = padT + (1 - (Edb[i]-Emn)/rng)*plotH;
+      ctx.beginPath(); ctx.arc(x0,y,2.2,0,2*Math.PI); ctx.fill();
+    }
+    ctx.fillStyle='#8a8d9a'; ctx.fillText('i = 0..' + p, rx0+4, Hgt-6);
+
+    const maxK = Math.max(...Array.from(ks.slice(1)).map(v=>Math.abs(v)));
+    const stable = maxK < 1;
+    readout.innerHTML = `p <span>${p}</span> &middot; max|k_i| <span>${maxK.toFixed(3)}</span> (<span>${stable?'stable':'unstable'}</span>) &middot; error reduction <span>${(10*Math.log10(E[0]/Math.max(1e-30,E[p]))).toFixed(1)}</span> dB`;
+  }
+  window.addEventListener('resize', draw);
+  [vS,pR].forEach(el=>el.addEventListener('input', draw));
+  setTimeout(draw, 260);
+})();
+
+})(); // end IIFE
+</script>
+
+</body>
+</html>
