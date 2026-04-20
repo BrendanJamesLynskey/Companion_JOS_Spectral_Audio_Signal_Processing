@@ -1592,6 +1592,7 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
   const nR = document.getElementById('qpiN'), nV = document.getElementById('qpiNVal');
   const readout = document.getElementById('qpiRead');
   let ctx = null, W = 0, H = 360;
+  let geom = null;  // cached plot geometry so the click handler can map x -> bin
 
   function draw(){
     const fTrue = parseFloat(fR.value);
@@ -1643,6 +1644,7 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
     const dBmin = -100, dBmax = 5;
     // Zoom to +/- 6 bins around peak
     const lo = Math.max(0, kStar-6), hi = Math.min(Nh-1, kStar+6);
+    geom = {padL, padT, plotW, plotH, lo, hi};
     ctx.strokeStyle = '#2a2d3a'; ctx.strokeRect(padL,padT,plotW,plotH);
     // y grid
     ctx.strokeStyle='#1a1d2a'; ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace';
@@ -1711,6 +1713,19 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
   }
   window.addEventListener('resize', draw);
   [fR,aR,wS,lS,nR].forEach(el => el.addEventListener('input', draw));
+  // Click on the plot to set the true frequency to the clicked bin position.
+  c.addEventListener('click', (ev) => {
+    if(!geom) return;
+    const rect = c.getBoundingClientRect();
+    const x = ev.clientX - rect.left;
+    const { padL, plotW, lo, hi } = geom;
+    if(x < padL || x > padL + plotW) return;
+    const binF = lo + ((x - padL) / plotW) * (hi - lo);
+    const clamped = Math.max(parseFloat(fR.min), Math.min(parseFloat(fR.max), binF));
+    fR.value = clamped.toFixed(2);
+    draw();
+  });
+  c.style.cursor = 'crosshair';
   setTimeout(draw, 80);
 })();
 
