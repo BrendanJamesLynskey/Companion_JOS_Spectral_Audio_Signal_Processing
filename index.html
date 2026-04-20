@@ -2299,14 +2299,18 @@ window.SASP.autocorr = autocorr;
     let mxL = -Infinity; for(let k=0;k<Nh;k++) if(lpcDb[k]>mxL) mxL = lpcDb[k];
     for(let k=0;k<Nh;k++) lpcDb[k] += (0 - mxL);
 
-    // Cepstral envelope: IFFT of log|X|, keep low-quefrency
+    // Cepstral envelope: IFFT of log|X|, keep low-quefrency.
+    // Build a conjugate-symmetric (here: real, even) log-magnitude spectrum
+    // with X[N-k] = X[k] so that the IFFT yields a real cepstrum.
     const logMag = new Float32Array(Nfft);
     const logIm  = new Float32Array(Nfft);
-    for(let k=0;k<Nh;k++){
-      logMag[k] = Math.log(Math.max(1e-12, mag[k]));
-      logMag[Nfft-1-k] = logMag[k];
+    logMag[0] = Math.log(Math.max(1e-12, mag[0]));
+    logMag[Nh] = Math.log(Math.max(1e-12, mag[Nh-1])); // Nyquist bin
+    for(let k=1;k<Nh;k++){
+      const v = Math.log(Math.max(1e-12, mag[k]));
+      logMag[k] = v;
+      logMag[Nfft-k] = v;
     }
-    logMag[Nfft-1] = logMag[0];
     fft(logMag, logIm, true);
     const Q = 40;
     for(let n=Q; n<Nfft-Q; n++){ logMag[n] = 0; logIm[n] = 0; }
@@ -2374,14 +2378,16 @@ window.SASP.autocorr = autocorr;
       const Hz = kk*(SR/2)/Nh;
       ctx.fillText(Hz.toFixed(0), x-12, padT+plotH-14);
     }
-    // frequency axis label
+    // Frequency axis ticks (Hz). The right edge of the plot corresponds to
+    // Khi bins which covers about 4 kHz (by construction of Khi).
     ctx.fillStyle='#8a8d9a';
     for(let fHz=0; fHz<=4000; fHz+=1000){
-      const x = padL + (fHz/(SR/2 * Khi/Nh * 1) * plotW / (Khi));
-      // simplification
+      const kk = fHz*Nh/(SR/2);
+      const x = padL + (kk/Khi)*plotW;
+      if(x < padL || x > padL+plotW) continue;
+      ctx.strokeStyle='#1a1d2a'; ctx.beginPath(); ctx.moveTo(x, padT+plotH); ctx.lineTo(x, padT+plotH+3); ctx.stroke();
+      ctx.fillText(fHz>=1000 ? (fHz/1000)+'k' : String(fHz), x-8, H-6);
     }
-    ctx.fillText('0', padL, H-6);
-    ctx.fillText('4 kHz', padL+plotW-40, H-6);
 
     readout.innerHTML = `vowel <span>${kind}</span> &middot; order p <span>${p}</span> &middot; formants <span>${peaks.map(k=>(k*(SR/2)/Nh).toFixed(0)).join(', ')}</span> Hz`;
   }
@@ -2503,19 +2509,27 @@ window.SASP.autocorr = autocorr;
     ctx.stroke();
     ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace'; ctx.fillText('d(\u03C4)', padL+4, topY+12);
 
-    // Bottom: d'
+    // Bottom: d' (values 0..~1.4 mapped so that low values sit LOW on screen)
     ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, botY, plotW, plotH);
+    const dPmax = 1.4;
+    const dPToY = v => botY + plotH - Math.min(dPmax, Math.max(0, v))/dPmax * plotH;
     // threshold line
-    const yTh = botY + Math.min(1, thresh)*plotH;
+    const yTh = dPToY(thresh);
     ctx.strokeStyle='#b06ae8'; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(padL,yTh); ctx.lineTo(padL+plotW,yTh); ctx.stroke(); ctx.setLineDash([]);
+    // 0 and 1 gridlines for context
+    ctx.strokeStyle='#1a1d2a'; ctx.setLineDash([]);
+    const y1 = dPToY(1);
+    ctx.beginPath(); ctx.moveTo(padL,y1); ctx.lineTo(padL+plotW,y1); ctx.stroke();
     ctx.strokeStyle='#5ce89a'; ctx.lineWidth=1.2; ctx.beginPath();
     for(let i=1;i<maxTau;i++){
       const x = padL + ((i-1)/(maxTau-2))*plotW;
-      const y = botY + Math.min(1.4, res.dP[i])*plotH*0.7;
+      const y = dPToY(res.dP[i]);
       if(i===1) ctx.moveTo(x,y); else ctx.lineTo(x,y);
     }
     ctx.stroke();
     ctx.fillStyle='#8a8d9a'; ctx.fillText("d'(\u03C4)", padL+4, botY+12);
+    ctx.fillText("1", padL-10, y1+3);
+    ctx.fillStyle='#b06ae8'; ctx.fillText("thr", padL+plotW-24, yTh-3);
 
     // Detected tau as orange vertical on both
     const xT = padL + ((res.tau-1)/(maxTau-2))*plotW;
@@ -2619,8 +2633,8 @@ window.SASP.autocorr = autocorr;
     const winT = new Float32Array(L); for(let n=0;n<L;n++) winT[n] = (n - (L-1)/2) * win[n];
     const winD = new Float32Array(L);
     for(let n=0;n<L;n++){
-      // derivative of Hann: -0.5 * 2*pi/(L-1) * sin(2*pi*n/(L-1))
-      winD[n] = - Math.PI/(L-1) * Math.sin(2*Math.PI*n/(L-1));
+      // derivative of Hann w[n]=0.5*(1-cos(2*pi*n/(L-1))) is +pi/(L-1)*sin(2*pi*n/(L-1))
+      winD[n] = Math.PI/(L-1) * Math.sin(2*Math.PI*n/(L-1));
     }
     const X  = stftWith(sig, L, Hop, win);
     const Xt = stftWith(sig, L, Hop, winT);
