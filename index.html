@@ -1669,17 +1669,22 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
       ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y); ctx.stroke();
       ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
     }
-    // Parabola (orange) through kStar-1, kStar, kStar+1
+    // Parabola (orange) fit through kStar-1, kStar, kStar+1, drawn across the
+    // full visible bin range. The fit is anchored on three points but the
+    // resulting parabola is continuous everywhere, so plot it everywhere it
+    // stays on-canvas; clip when it dives below dBmin.
     ctx.strokeStyle = '#e8a44a'; ctx.lineWidth = 1.8; ctx.beginPath();
-    const steps = 120;
+    const tLo = lo - kStar, tHi = hi - kStar;
+    const steps = 240;
+    let pen = false;
     for(let s=0;s<=steps;s++){
-      const t = -1 + 2*(s/steps); // bin offset from kStar
+      const t = tLo + (tHi - tLo)*(s/steps); // bin offset from kStar
       const v = a*t*(t-1)/2 + cc*t*(t+1)/2 - b*(t-1)*(t+1);
+      if(v < dBmin){ pen = false; continue; }
       const kk = kStar + t;
-      if(kk<lo-0.5 || kk>hi+0.5) continue;
       const x = padL + ((kk-lo)/(hi-lo))*plotW;
-      const y = padT + ((dBmax - Math.max(dBmin,v))/(dBmax-dBmin))*plotH;
-      if(s===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      const y = padT + ((dBmax - Math.min(dBmax,v))/(dBmax-dBmin))*plotH;
+      if(!pen){ ctx.moveTo(x,y); pen = true; } else ctx.lineTo(x,y);
     }
     ctx.stroke();
     // True frequency: dashed vertical
