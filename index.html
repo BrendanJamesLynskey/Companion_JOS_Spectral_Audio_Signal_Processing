@@ -1657,12 +1657,17 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
     const padL=44, padR=12, padT=14, padB=30;
     const plotW = W - padL - padR, plotH = H - padT - padB;
     const dBmin = -100, dBmax = 5;
-    // Zoom around the peak. The window scales gently with N so changing the
-    // Length slider visibly redraws the plot (otherwise a fixed +/-6 bin
-    // window makes L feel like a no-op since Hann mainlobe width in bins is
-    // independent of N).
+    // Zoom around the user's input frequency, not the detected peak. The
+    // window scales gently with N so the Length slider visibly redraws the
+    // plot. Centering on fTrue (rather than kStar) means the peak actually
+    // slides across the canvas as the user moves the frequency slider --
+    // otherwise the view auto-recenters on every kStar change and the peak
+    // stays glued to the middle, making the slider look broken. The center
+    // is clamped so the window stays inside [0, Nh-1].
     const halfRange = Math.min(30, Math.max(6, N >> 4));
-    const lo = Math.max(0, kStar-halfRange), hi = Math.min(Nh-1, kStar+halfRange);
+    const wantedCenter = Math.round(fTrue);
+    const center = Math.max(halfRange, Math.min(Nh-1-halfRange, wantedCenter));
+    const lo = center - halfRange, hi = center + halfRange;
     geom = {padL, padT, plotW, plotH, lo, hi};
     ctx.strokeStyle = '#2a2d3a'; ctx.strokeRect(padL,padT,plotW,plotH);
     // y grid
