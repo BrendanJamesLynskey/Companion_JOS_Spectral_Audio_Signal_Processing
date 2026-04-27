@@ -1788,19 +1788,26 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
 function sigVoicedVowel(N, sr, f0){
   f0 = f0 || 165;
   const out = new Float32Array(N);
-  // Harmonics 1..20, formant-weighted
-  const F = [700, 1100, 2600, 3200];
-  const BW = [80, 100, 140, 160];
+  // Harmonics 1..22 with a parallel formant model. The previous version
+  // cascaded four Lorentzian formant responses by multiplication, which
+  // attenuated every harmonic to ~1e-7..1e-5 amplitude (since each
+  // Lorentzian falls off as 1/d^2 away from its peak, and four multiplied
+  // together annihilates anything not sitting on a formant). The signal
+  // was effectively silent. Switch to the standard parallel formant sum
+  // so each harmonic gets the strongest formant's response.
+  const F  = [700, 1100, 2600, 3200];
+  const BW = [ 80,  100,  140,  160];
   for(let n=0;n<N;n++){
     const t = n/sr;
     let v = 0;
     for(let h=1; h<=22; h++){
       const fh = f0*h;
-      let w = 1/h;
+      let formant = 0;
       for(let r=0;r<F.length;r++){
         const d = (fh - F[r])/BW[r];
-        w *= 1/(1 + d*d);
+        formant += 1/(1 + d*d);
       }
+      const w = formant / h;
       v += w*Math.sin(2*Math.PI*fh*t);
     }
     out[n] = 0.25*v;
@@ -2017,7 +2024,12 @@ window.SASP.pickPeaks = pickPeaks;
       for(let k=0;k<Nfft/2;k++){ const m = Math.hypot(fr.re[k], fr.im[k]); if(m>globMax) globMax=m; }
     }
     const cellW = plotW / nFr;
-    const Kshow = Math.min(Nfft/2, Math.floor(Nfft*0.3)); // show lower 30% (below ~4.8 kHz at SR=16k)
+    // Show up to bin Nfft/4 (== SR/4 Hz, i.e. 4 kHz at SR=16k). All four
+    // demo signals have their highest harmonic below ~3.7 kHz, so the old
+    // 0.3*Nfft (~4.8 kHz) wasted vertical space on empty noise floor and
+    // made vibrato wiggles too small to see. Now the y-axis zoom is 1.2x
+    // tighter and small frequency variations show up clearly.
+    const Kshow = Nfft >> 2;
     for(let m=0;m<nFr;m++){
       const fr = stft.frames[m];
       for(let k=0;k<Kshow;k++){
@@ -2040,12 +2052,15 @@ window.SASP.pickPeaks = pickPeaks;
     ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, botY, plotW, plotH);
     ctx.fillStyle='#8a8d9a'; ctx.fillText('MQ tracks', padL+4, botY+12);
 
-    // Draw tracks with colour by birth order
+    // Draw tracks with colour by birth order. Clip to the bottom panel so
+    // any peaks above Kshow don't draw off-panel into the spectrogram.
     let longest = 0, nLong = 0;
     for(const tr of tracks){
       if(tr.frames.length > longest) longest = tr.frames.length;
       if(tr.frames.length > 5) nLong++;
     }
+    ctx.save();
+    ctx.beginPath(); ctx.rect(padL, botY, plotW, plotH); ctx.clip();
     for(const tr of tracks){
       if(tr.frames.length < 3) continue;
       const hue = (tr.id*37) % 360;
@@ -2060,6 +2075,7 @@ window.SASP.pickPeaks = pickPeaks;
       }
       ctx.stroke();
     }
+    ctx.restore();
 
     readout.innerHTML =
       `frames <span>${nFr}</span> &middot; tracks total <span>${tracks.length}</span> ` +
