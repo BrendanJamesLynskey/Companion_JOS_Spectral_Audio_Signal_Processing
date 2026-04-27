@@ -1595,10 +1595,19 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
   let geom = null;  // cached plot geometry so the click handler can map x -> bin
 
   function draw(){
+    const L = parseInt(lS.value,10);
+    // Constrain the frequency slider so the tone always stays well inside
+    // the positive-frequency half. Without this, L=128 + fTrue>~60 causes
+    // silent aliasing: the peak appears at bin N-fTrue, the plot zooms onto
+    // the alias, and the dashed "true" vertical flies off the right edge.
+    const fMax = Math.min(80, (L>>1) - 8);
+    if(parseFloat(fR.max) !== fMax){
+      fR.max = String(fMax);
+      if(parseFloat(fR.value) > fMax) fR.value = fMax.toFixed(2);
+    }
     const fTrue = parseFloat(fR.value);
     const amp = parseFloat(aR.value);
     const noise = parseFloat(nR.value);
-    const L = parseInt(lS.value,10);
     fV.textContent = fTrue.toFixed(2); aV.textContent = amp.toFixed(2); nV.textContent = noise.toFixed(3);
     // Build signal of length L: tone at fTrue (in DFT bins per N) over N samples
     // For simplicity, use N = L. So digital freq = 2*pi*fTrue/L.
@@ -1702,10 +1711,26 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
     ctx.beginPath(); ctx.moveTo(xR,padT); ctx.lineTo(xR,padT+plotH); ctx.stroke();
     ctx.setLineDash([]);
 
-    // Legend
-    ctx.fillStyle='#5ce89a'; ctx.fillText('true',  padL + plotW - 70, padT + 12);
-    ctx.fillStyle='#e8a44a'; ctx.fillText('parab', padL + plotW - 70, padT + 24);
-    ctx.fillStyle='#e85a7a'; ctx.fillText('bin',   padL + plotW - 70, padT + 36);
+    // Legend with line-style swatches matching what's drawn on the plot, so
+    // the reader can recognise dashed/solid/dotted as well as colour. Order
+    // and styles match the three vertical estimate lines above.
+    const legX = padL + plotW - 86, legYT = padT + 6;
+    const swX1 = legX, swX2 = legX + 22, txX = legX + 28;
+    ctx.font = '10px "Lucida Console", monospace'; ctx.lineWidth = 1.4;
+    // true (green dashed)
+    ctx.strokeStyle = '#5ce89a'; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(swX1, legYT+4); ctx.lineTo(swX2, legYT+4); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#5ce89a'; ctx.fillText('true',  txX, legYT+7);
+    // parab (orange solid)
+    ctx.strokeStyle = '#e8a44a';
+    ctx.beginPath(); ctx.moveTo(swX1, legYT+16); ctx.lineTo(swX2, legYT+16); ctx.stroke();
+    ctx.fillStyle = '#e8a44a'; ctx.fillText('parab', txX, legYT+19);
+    // bin (red dotted)
+    ctx.strokeStyle = '#e85a7a'; ctx.setLineDash([2,3]);
+    ctx.beginPath(); ctx.moveTo(swX1, legYT+28); ctx.lineTo(swX2, legYT+28); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#e85a7a'; ctx.fillText('bin',   txX, legYT+31);
 
     // Readout
     const eRaw  = (fEstRaw - fTrue);
