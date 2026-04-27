@@ -1625,10 +1625,16 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
     fft(re, im, false);
     const Nh = N>>1;
     const mag = new Float32Array(Nh);
-    let maxM = 1e-20;
-    for(let k=0;k<Nh;k++){ const m = Math.hypot(re[k],im[k]); mag[k]=m; if(m>maxM) maxM=m; }
+    for(let k=0;k<Nh;k++) mag[k] = Math.hypot(re[k], im[k]);
+    // Normalise dB to the theoretical peak for a sinusoid at amp=1 through
+    // this window: |X[f0]| ~= sum(w)/2. This keeps the peak near 0 dB at
+    // amp=1 and makes the amplitude slider visibly scale the peak height.
+    // (Peak-relative normalisation always pinned the peak at 0 dB and hid
+    // the amp slider.)
+    let sumW = 0; for(let n=0;n<N;n++) sumW += w[n];
+    const refMag = sumW / 2;
     const db = new Float32Array(Nh);
-    for(let k=0;k<Nh;k++) db[k] = 20*Math.log10(Math.max(1e-12, mag[k]/maxM));
+    for(let k=0;k<Nh;k++) db[k] = 20*Math.log10(Math.max(1e-12, mag[k]/refMag));
     // Find peak bin
     let kStar = 1;
     for(let k=1;k<Nh-1;k++) if(mag[k]>mag[kStar]) kStar = k;
@@ -1651,8 +1657,12 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
     const padL=44, padR=12, padT=14, padB=30;
     const plotW = W - padL - padR, plotH = H - padT - padB;
     const dBmin = -100, dBmax = 5;
-    // Zoom to +/- 6 bins around peak
-    const lo = Math.max(0, kStar-6), hi = Math.min(Nh-1, kStar+6);
+    // Zoom around the peak. The window scales gently with N so changing the
+    // Length slider visibly redraws the plot (otherwise a fixed +/-6 bin
+    // window makes L feel like a no-op since Hann mainlobe width in bins is
+    // independent of N).
+    const halfRange = Math.min(30, Math.max(6, N >> 4));
+    const lo = Math.max(0, kStar-halfRange), hi = Math.min(Nh-1, kStar+halfRange);
     geom = {padL, padT, plotW, plotH, lo, hi};
     ctx.strokeStyle = '#2a2d3a'; ctx.strokeRect(padL,padT,plotW,plotH);
     // y grid
@@ -1662,11 +1672,15 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
       ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y); ctx.stroke();
       ctx.fillText(String(g)+' dB', 4, y+3);
     }
-    // x ticks
+    // x ticks (gridline every bin; label every ceil((hi-lo)/12)-th bin so
+    // labels don't crowd when halfRange grows with N)
+    const tickStep = Math.max(1, Math.ceil((hi-lo)/12));
     for(let kk=lo;kk<=hi;kk++){
       const x = padL + ((kk-lo)/(hi-lo))*plotW;
       ctx.strokeStyle='#1a1d2a'; ctx.beginPath(); ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH); ctx.stroke();
-      ctx.fillStyle='#8a8d9a'; ctx.fillText(String(kk), x-6, H-10);
+      if(((kk-lo) % tickStep) === 0){
+        ctx.fillStyle='#8a8d9a'; ctx.fillText(String(kk), x-6, H-10);
+      }
     }
     // Stems
     ctx.strokeStyle = '#4a9de8'; ctx.fillStyle='#4a9de8'; ctx.lineWidth=1.6;
@@ -1696,19 +1710,25 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
       if(!pen){ ctx.moveTo(x,y); pen = true; } else ctx.lineTo(x,y);
     }
     ctx.stroke();
-    // True frequency: dashed vertical
-    const xTrue = padL + ((fTrue - lo)/(hi-lo))*plotW;
-    ctx.strokeStyle = '#5ce89a'; ctx.setLineDash([4,4]); ctx.lineWidth=1.2;
-    ctx.beginPath(); ctx.moveTo(xTrue,padT); ctx.lineTo(xTrue,padT+plotH); ctx.stroke();
-    ctx.setLineDash([]);
-    // Parabolic estimate: solid orange
-    const xP = padL + ((fEstParab - lo)/(hi-lo))*plotW;
-    ctx.strokeStyle = '#e8a44a'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(xP,padT); ctx.lineTo(xP,padT+plotH); ctx.stroke();
-    // Raw estimate: dotted
+    // Vertical estimate lines. Drawn in increasing pedagogical priority
+    // (raw bin -> parabolic estimate -> true), so when two lines coincide
+    // pixel-perfect (parabolic interp on a Hann mainlobe is essentially
+    // exact), the dashed green "true" wins on top instead of being hidden
+    // under the solid orange "parab". Dash patterns chosen so dashed and
+    // dotted are clearly distinguishable: true is [8,5], bin is [2,3].
+    // Raw estimate (red dotted)
     const xR = padL + ((fEstRaw - lo)/(hi-lo))*plotW;
     ctx.strokeStyle = '#e85a7a'; ctx.setLineDash([2,3]); ctx.lineWidth=1.2;
     ctx.beginPath(); ctx.moveTo(xR,padT); ctx.lineTo(xR,padT+plotH); ctx.stroke();
+    ctx.setLineDash([]);
+    // Parabolic estimate (orange solid)
+    const xP = padL + ((fEstParab - lo)/(hi-lo))*plotW;
+    ctx.strokeStyle = '#e8a44a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(xP,padT); ctx.lineTo(xP,padT+plotH); ctx.stroke();
+    // True frequency (green dashed) -- drawn last so it stays visible
+    const xTrue = padL + ((fTrue - lo)/(hi-lo))*plotW;
+    ctx.strokeStyle = '#5ce89a'; ctx.setLineDash([8,5]); ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(xTrue,padT); ctx.lineTo(xTrue,padT+plotH); ctx.stroke();
     ctx.setLineDash([]);
 
     // Legend with line-style swatches matching what's drawn on the plot, so
@@ -1717,8 +1737,8 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
     const legX = padL + plotW - 86, legYT = padT + 6;
     const swX1 = legX, swX2 = legX + 22, txX = legX + 28;
     ctx.font = '10px "Lucida Console", monospace'; ctx.lineWidth = 1.4;
-    // true (green dashed)
-    ctx.strokeStyle = '#5ce89a'; ctx.setLineDash([4,4]);
+    // true (green dashed -- same [8,5] pattern as the plot's vertical)
+    ctx.strokeStyle = '#5ce89a'; ctx.setLineDash([8,5]);
     ctx.beginPath(); ctx.moveTo(swX1, legYT+4); ctx.lineTo(swX2, legYT+4); ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = '#5ce89a'; ctx.fillText('true',  txX, legYT+7);
