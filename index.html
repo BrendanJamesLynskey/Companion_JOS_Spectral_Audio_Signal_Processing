@@ -1438,37 +1438,47 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
     const dt = Math.min(0.05, (now-last)/1000); last = now;
     const nW = hostW(), nH = hostH();
     if(nW !== W || nH !== H){ W=nW; H=nH; ctx = setupCanvas(c, W, H); setupTrail(); }
-    // Fade the trail layer slightly each frame.
-    tctx.fillStyle = 'rgba(10,11,15,0.045)'; tctx.fillRect(0,0,W,H);
+    // Fade the trail layer. Bumped from 0.045 to 0.14 so trails decay
+    // to background in a sensible few hundred ms instead of accumulating
+    // into a permanent uniform haze over time.
+    tctx.fillStyle = 'rgba(10,11,15,0.14)'; tctx.fillRect(0,0,W,H);
 
+    // First pass: update positions, draw bright cores into the trail
+    // layer (these are what produces the streak effect). The halos used
+    // to be drawn into the trail too, but at alpha ~0.55 each frame they
+    // saturated nearby pixels in two frames -- trail-wide haze. Halos
+    // now go onto the visible canvas after compositing, so they paint
+    // exactly once per frame and don't accumulate.
+    const live = [];
     for(let i=tracks.length-1;i>=0;i--){
       const a = tracks[i];
       const age = now - a.t0;
       if(age > a.life){ tracks[i] = newTrack(now); continue; }
-      // progress across screen, 0..1
       const x = a.x0 + a.v * (age/1000);
       if(x > 1.15){ tracks[i] = newTrack(now); continue; }
-      // frequency with slow drift + small vibrato
       const f = a.f0 + a.drift*age + a.vib.amp*Math.sin(a.vib.ph + a.vib.rate*age/1000);
       const px = x * W;
       const py = (1 - Math.min(1,Math.max(0,f))) * H;
-      // birth/death envelope
       const u = age/a.life;
       const env = Math.sin(Math.PI * Math.min(1,Math.max(0,u)));
       const col = viridisLike(f);
-      // Draw a bright dot on the trail layer (so it persists)
       const r = 2.2 + 0.9*Math.sin(now*0.004 + i);
-      const grad = tctx.createRadialGradient(px,py,0,px,py,10);
-      grad.addColorStop(0, `rgba(${col[0]|0},${col[1]|0},${col[2]|0},${0.55*env*a.amp})`);
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      tctx.fillStyle = grad;
-      tctx.beginPath(); tctx.arc(px,py,10,0,Math.PI*2); tctx.fill();
       tctx.fillStyle = `rgba(${col[0]|0},${col[1]|0},${col[2]|0},${0.95*env})`;
       tctx.beginPath(); tctx.arc(px,py,r,0,Math.PI*2); tctx.fill();
+      live.push({px, py, env, amp: a.amp, col});
     }
     // Composite trail onto visible canvas
     ctx.fillStyle='rgba(10,11,15,1)'; ctx.fillRect(0,0,W,H);
     ctx.drawImage(trail, 0, 0, W, H);
+    // Second pass: halos on top of the visible canvas, single layer per
+    // frame so they don't compound.
+    for(const p of live){
+      const grad = ctx.createRadialGradient(p.px,p.py,0,p.px,p.py,10);
+      grad.addColorStop(0, `rgba(${p.col[0]|0},${p.col[1]|0},${p.col[2]|0},${0.55*p.env*p.amp})`);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(p.px,p.py,10,0,Math.PI*2); ctx.fill();
+    }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -1556,24 +1566,31 @@ window.SASP = { setupCanvas, fitWidth, fft, WINDOWS, getAudioCtx, playBuffer, vi
     }
     ctx.stroke();
 
-    // --- Readouts: mainlobe -6dB width (bins, rel to L), peak sidelobe, scalloping
-    // Find -6 dB crossing starting at DC
+    // --- Readouts: search the full spectrum (not just `shownBins`) so a
+    // wide mainlobe at small L still gets measured. Fall back to "n/a"
+    // rather than 0 / -1000 dB when a metric can't be computed.
     let k6 = 0;
-    for(let k=1;k<shownBins;k++){ if(db[k] < -6){ k6 = k - (db[k]+6)/(db[k]-db[k-1]); break; } }
-    const mainlobe_bins_L = 2*k6 / ZP; // in units of L-bins (1/L cycles/sample)
-    // Find first local min after mainlobe
+    for(let k=1;k<N/2;k++){ if(db[k] < -6){ k6 = k - (db[k]+6)/(db[k]-db[k-1]); break; } }
+    const mainlobe_bins_L = (k6 > 0) ? 2*k6/ZP : NaN;
     let firstMin = 0;
-    for(let k=2;k<shownBins-1;k++){ if(db[k]<db[k-1] && db[k]<db[k+1]){ firstMin = k; break; } }
-    let sll = -1000;
-    for(let k=firstMin; k<shownBins-1;k++){ if(db[k]>db[k-1] && db[k]>db[k+1] && db[k]>sll) sll = db[k]; }
-    // Scalloping loss: value at bin midway between two DFT samples = 0.5 * (1/L of a cycle in original, i.e. ZP/2 of the zero-pad step)
+    for(let k=2;k<N/2-1;k++){ if(db[k]<db[k-1] && db[k]<db[k+1]){ firstMin = k; break; } }
+    let sll = -Infinity;
+    if(firstMin > 0){
+      for(let k=firstMin+1; k<N/2-1; k++){
+        if(db[k]>db[k-1] && db[k]>db[k+1] && db[k]>sll) sll = db[k];
+      }
+    }
+    // Scalloping loss is only defined when ZP >= 2 (need at least one
+    // sample between natural DFT bins). At ZP=1 the previous code read
+    // db[1], a nonsense number unrelated to inter-bin loss.
     const midK = Math.round(ZP/2);
-    const scallop = db[midK];
+    const scallop = (ZP >= 2 && midK > 0 && midK < N/2) ? db[midK] : NaN;
 
+    const fmt = (v, dec) => (isNaN(v) || !isFinite(v)) ? 'n/a' : v.toFixed(dec);
     readout.innerHTML =
-      `main-lobe 6 dB width <span>${mainlobe_bins_L.toFixed(2)}</span> bins ` +
-      `&middot; peak sidelobe <span>${sll.toFixed(1)}</span> dB ` +
-      `&middot; scalloping <span>${scallop.toFixed(2)}</span> dB ` +
+      `main-lobe 6 dB width <span>${fmt(mainlobe_bins_L, 2)}</span> bins ` +
+      `&middot; peak sidelobe <span>${fmt(sll, 1)}</span> dB ` +
+      `&middot; scalloping <span>${fmt(scallop, 2)}</span> dB ` +
       `&middot; FFT <span>${N}</span>`;
   }
   window.addEventListener('resize', draw);
@@ -2180,17 +2197,22 @@ window.SASP.pickPeaks = pickPeaks;
       const kept = peaks.slice(0, Pkeep);
       const reF = new Float32Array(Nfft), imF = new Float32Array(Nfft);
       const halfWidth = 4;
+      // Copy the +/-halfWidth bins around each kept peak verbatim. Earlier
+      // versions multiplied each kept bin by a Gaussian gw=exp(-dk^2/4),
+      // which dropped to 0.37 just two bins from centre and ~0.02 at the
+      // edges -- attenuating the mainlobe itself, not just smoothing the
+      // band edges. Result: deterministic reconstruction lost ~6 dB and
+      // the energy ratio readout under-reported.
       for(const p of kept){
         const kc = Math.round(p.k);
         for(let dk=-halfWidth; dk<=halfWidth; dk++){
           const kk = kc + dk;
           if(kk<=0 || kk>=Nfft/2) continue;
-          const gw = Math.exp(-0.5*dk*dk/2);
-          reF[kk] = fr.re[kk]*gw;
-          imF[kk] = fr.im[kk]*gw;
+          reF[kk] = fr.re[kk];
+          imF[kk] = fr.im[kk];
           // conjugate symmetry
-          reF[Nfft-kk] = fr.re[kk]*gw;
-          imF[Nfft-kk] = -fr.im[kk]*gw;
+          reF[Nfft-kk] =  fr.re[kk];
+          imF[Nfft-kk] = -fr.im[kk];
         }
       }
       fft(reF, imF, true);
@@ -2208,7 +2230,11 @@ window.SASP.pickPeaks = pickPeaks;
     return cache;
   }
 
-  function miniSpec(ctx, sig, x0, y0, w, h){
+  // Returns its own max so the caller can pass it back as `sharedMx`,
+  // making the three panels comparable. Without this, each panel
+  // independently auto-normalises and a near-silent residual is colour-
+  // stretched to look as bright as the original.
+  function miniSpec(ctx, sig, x0, y0, w, h, sharedMx){
     const L=512, Hop=128;
     const st = computeSTFT(sig, L, Hop, WINDOWS.hann.fn);
     let mx=1e-30;
@@ -2220,15 +2246,17 @@ window.SASP.pickPeaks = pickPeaks;
       for(let k=0;k<K;k++){ const v = Math.hypot(fr.re[k], fr.im[k]); m[k]=v; if(v>mx) mx=v; }
       mags.push(m);
     }
+    const refMx = (sharedMx && sharedMx > 0) ? sharedMx : mx;
     const cw = w/nF, ch = h/K;
     for(let f=0; f<nF; f++){
       for(let k=0;k<K;k++){
-        const v = Math.max(0, Math.min(1, (20*Math.log10(mags[f][k]/mx + 1e-12) + 80)/80));
+        const v = Math.max(0, Math.min(1, (20*Math.log10(mags[f][k]/refMx + 1e-12) + 80)/80));
         const col = viridisLike(v);
         ctx.fillStyle=`rgb(${col[0]|0},${col[1]|0},${col[2]|0})`;
         ctx.fillRect(x0 + f*cw, y0 + (K-1-k)*ch, Math.ceil(cw)+1, Math.ceil(ch)+1);
       }
     }
+    return mx;
   }
 
   function draw(){
@@ -2240,15 +2268,18 @@ window.SASP.pickPeaks = pickPeaks;
     const padL=50, padR=10, padT=10, padB=24, gap=6;
     const plotW = W - padL - padR;
     const plotH = (H - padT - padB - 2*gap)/3;
-    miniSpec(ctx, d.sig, padL, padT,                 plotW, plotH);
-    miniSpec(ctx, d.det, padL, padT + plotH + gap,   plotW, plotH);
-    miniSpec(ctx, d.res, padL, padT + 2*(plotH+gap), plotW, plotH);
+    // Use the original's max as the shared colour reference for all three
+    // panels so brightness is directly comparable (residual really should
+    // look dimmer than original when most energy was captured).
+    const mxShared = miniSpec(ctx, d.sig, padL, padT, plotW, plotH);
+    miniSpec(ctx, d.det, padL, padT + plotH + gap,   plotW, plotH, mxShared);
+    miniSpec(ctx, d.res, padL, padT + 2*(plotH+gap), plotW, plotH, mxShared);
     ctx.strokeStyle='#2a2d3a';
     ctx.strokeRect(padL, padT, plotW, plotH);
     ctx.strokeRect(padL, padT+plotH+gap, plotW, plotH);
     ctx.strokeRect(padL, padT+2*(plotH+gap), plotW, plotH);
     ctx.fillStyle='#e8a44a'; ctx.font='10px "Lucida Console", monospace';
-    ctx.fillText('original', padL+4, padT+12);
+    ctx.fillText('original (0-5 kHz)', padL+4, padT+12);
     ctx.fillStyle='#4a9de8'; ctx.fillText('deterministic', padL+4, padT+plotH+gap+12);
     ctx.fillStyle='#5ce89a'; ctx.fillText('residual', padL+4, padT+2*(plotH+gap)+12);
 
@@ -2259,9 +2290,19 @@ window.SASP.pickPeaks = pickPeaks;
     readout.innerHTML = `P <span>${pR.value}</span> &middot; deterministic energy <span>${ratio.toFixed(1)}%</span> &middot; residual RMS <span>${Math.sqrt(Er/d.sig.length).toFixed(3)}</span>`;
   }
 
-  bO.addEventListener('click', ()=>{ if(!cache) compute(); playBuffer(cache.sig, SR); });
-  bD.addEventListener('click', ()=>{ if(!cache) compute(); playBuffer(cache.det, SR); });
-  bS.addEventListener('click', ()=>{ if(!cache) compute(); playBuffer(cache.res, SR); });
+  // Peak-normalise to 0.7 before playback so all three buttons sound at a
+  // comparable level. Otherwise the Stochastic button plays inaudibly on
+  // clean harmonic signals (the residual is a few percent of the original).
+  function playNorm(buf){
+    const out = new Float32Array(buf.length);
+    let mx = 0;
+    for(let i=0;i<buf.length;i++) if(Math.abs(buf[i])>mx) mx = Math.abs(buf[i]);
+    if(mx > 1e-9){ for(let i=0;i<buf.length;i++) out[i] = buf[i]*0.7/mx; }
+    playBuffer(out, SR);
+  }
+  bO.addEventListener('click', ()=>{ if(!cache) compute(); playNorm(cache.sig); });
+  bD.addEventListener('click', ()=>{ if(!cache) compute(); playNorm(cache.det); });
+  bS.addEventListener('click', ()=>{ if(!cache) compute(); playNorm(cache.res); });
   window.addEventListener('resize', draw);
   [sigSel,pR].forEach(el=>el.addEventListener('input', draw));
   setTimeout(draw, 150);
@@ -2330,11 +2371,16 @@ window.SASP.autocorr = autocorr;
       for(let h=1;h<=30;h++){
         const fh = f0*h;
         if(fh > SR/2 - 50) break;
-        let w = 1/h;
+        // Parallel formant model -- sum the three Lorentzian responses,
+        // don't multiply them. The previous cascade (w *= 1/(1+d^2*0.6))
+        // attenuated every harmonic by the off-formants, so the displayed
+        // spectrum had no formant structure.
+        let formant = 0;
         for(let i=0;i<3;i++){
           const d = (fh - forms[0][i])/forms[1][i];
-          w *= 1/(1 + d*d*0.6);
+          formant += 1/(1 + d*d*0.6);
         }
+        const w = formant / h;
         v += w*Math.sin(2*Math.PI*fh*t);
       }
       out[n] = 0.3*v;
@@ -2381,9 +2427,18 @@ window.SASP.autocorr = autocorr;
       const HH = g*g / Math.max(denom, 1e-20);
       lpcDb[k] = 10*Math.log10(HH);
     }
-    // Normalise LPC curve to match spectrum's peak
-    let mxL = -Infinity; for(let k=0;k<Nh;k++) if(lpcDb[k]>mxL) mxL = lpcDb[k];
-    for(let k=0;k<Nh;k++) lpcDb[k] += (0 - mxL);
+    // Shift the LPC envelope so it sits at-or-above every harmonic. With
+    // independent peak-normalisation (LPC and spectrum each pinned to
+    // 0 dB) the LPC envelope dipped below the strongest harmonic at its
+    // own peak bin, which defeats the point of an envelope. Now compute
+    // the maximum (spectrum - LPC) gap and add it to LPC, guaranteeing
+    // lpcDb[k] >= dB[k] for every k.
+    let shift = -Infinity;
+    for(let k=0;k<Nh;k++){
+      const diff = dB[k] - lpcDb[k];
+      if(diff > shift) shift = diff;
+    }
+    for(let k=0;k<Nh;k++) lpcDb[k] += shift;
 
     // Cepstral envelope: IFFT of log|X|, keep low-quefrency.
     // Build a conjugate-symmetric (here: real, even) log-magnitude spectrum
@@ -2453,16 +2508,20 @@ window.SASP.autocorr = autocorr;
       }
       ctx.stroke();
     }
-    // Formant ticks from LPC peaks
+    // Formant ticks from LPC peaks (only when the LPC curve is visible --
+    // legend says "formant peaks detected on the LPC envelope", so the
+    // ticks shouldn't float in space when the user has hidden the curve).
     const peaks = [];
     for(let k=3;k<Khi-3;k++){ if(lpcDb[k]>lpcDb[k-1] && lpcDb[k]>lpcDb[k+1] && lpcDb[k] > -30) peaks.push(k); }
-    ctx.strokeStyle='#e85a7a'; ctx.lineWidth=1.2;
-    ctx.fillStyle='#e85a7a';
-    for(const kk of peaks){
-      const x = padL + (kk/Khi)*plotW;
-      ctx.beginPath(); ctx.moveTo(x, padT+plotH); ctx.lineTo(x, padT+plotH-10); ctx.stroke();
-      const Hz = kk*(SR/2)/Nh;
-      ctx.fillText(Hz.toFixed(0), x-12, padT+plotH-14);
+    if(show==='lpc' || show==='both'){
+      ctx.strokeStyle='#e85a7a'; ctx.lineWidth=1.2;
+      ctx.fillStyle='#e85a7a';
+      for(const kk of peaks){
+        const x = padL + (kk/Khi)*plotW;
+        ctx.beginPath(); ctx.moveTo(x, padT+plotH); ctx.lineTo(x, padT+plotH-10); ctx.stroke();
+        const Hz = kk*(SR/2)/Nh;
+        ctx.fillText(Hz.toFixed(0), x-12, padT+plotH-14);
+      }
     }
     // Frequency axis ticks (Hz). The right edge of the plot corresponds to
     // Khi bins which covers about 4 kHz (by construction of Khi).
@@ -2583,29 +2642,41 @@ window.SASP.autocorr = autocorr;
     const botY = padT + plotH + gap;
     const maxTau = res.d.length;
 
-    // Normalise d for display
-    let dmax = 1e-30; for(let i=1;i<maxTau;i++) if(res.d[i]>dmax) dmax = res.d[i];
+    // Normalise d to 2*sum(x^2). For a stationary signal this gives
+    // d(tau)/dRef = 1 - r(tau)/r(0), so d(T0)/dRef equals the noise
+    // fraction of total energy -- moving the SNR slider visibly raises
+    // the trough at the true period. The previous max-normalisation
+    // hid this: scaling by dmax meant SNR changes were absorbed into
+    // the rescale and the curve looked the same regardless.
+    let energyX = 0; for(let i=0;i<L;i++) energyX += frame[i]*frame[i];
+    const dRef = Math.max(2*energyX, 1e-30);
+    const dPlotMax = 1.1;
     ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, topY, plotW, plotH);
+    // y=1 gridline (asymptotic d/dRef value for white noise)
+    ctx.strokeStyle='#1a1d2a';
+    const yOne = topY + (1 - 1/dPlotMax)*plotH;
+    ctx.beginPath(); ctx.moveTo(padL,yOne); ctx.lineTo(padL+plotW,yOne); ctx.stroke();
     ctx.strokeStyle='#4a9de8'; ctx.lineWidth=1.2; ctx.beginPath();
     for(let i=1;i<maxTau;i++){
       const x = padL + ((i-1)/(maxTau-2))*plotW;
-      const y = topY + (1 - res.d[i]/dmax)*plotH;
+      const v = Math.min(dPlotMax, res.d[i]/dRef);
+      const y = topY + (1 - v/dPlotMax)*plotH;
       if(i===1) ctx.moveTo(x,y); else ctx.lineTo(x,y);
     }
     ctx.stroke();
-    ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace'; ctx.fillText('d(\u03C4)', padL+4, topY+12);
+    ctx.fillStyle='#8a8d9a'; ctx.fillText('1', padL-10, yOne+3);
+    ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace'; ctx.fillText('d(\u03C4) / 2\u03A3x\u00B2', padL+4, topY+12);
 
     // Bottom: d' (values 0..~1.4 mapped so that low values sit LOW on screen)
     ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, botY, plotW, plotH);
     const dPmax = 1.4;
     const dPToY = v => botY + plotH - Math.min(dPmax, Math.max(0, v))/dPmax * plotH;
-    // threshold line
     const yTh = dPToY(thresh);
-    ctx.strokeStyle='#b06ae8'; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(padL,yTh); ctx.lineTo(padL+plotW,yTh); ctx.stroke(); ctx.setLineDash([]);
-    // 0 and 1 gridlines for context
+    // 0 and 1 gridlines for context (drawn first so the curve sits on top)
     ctx.strokeStyle='#1a1d2a'; ctx.setLineDash([]);
     const y1 = dPToY(1);
     ctx.beginPath(); ctx.moveTo(padL,y1); ctx.lineTo(padL+plotW,y1); ctx.stroke();
+    // d'(tau) curve
     ctx.strokeStyle='#5ce89a'; ctx.lineWidth=1.2; ctx.beginPath();
     for(let i=1;i<maxTau;i++){
       const x = padL + ((i-1)/(maxTau-2))*plotW;
@@ -2613,6 +2684,12 @@ window.SASP.autocorr = autocorr;
       if(i===1) ctx.moveTo(x,y); else ctx.lineTo(x,y);
     }
     ctx.stroke();
+    // Threshold line drawn LAST so the dashed purple stays on top of the
+    // green curve where they cross (otherwise the curve hides the most
+    // pedagogically important line in the demo).
+    ctx.strokeStyle='#b06ae8'; ctx.lineWidth=1.4; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(padL,yTh); ctx.lineTo(padL+plotW,yTh); ctx.stroke();
+    ctx.setLineDash([]);
     ctx.fillStyle='#8a8d9a'; ctx.fillText("d'(\u03C4)", padL+4, botY+12);
     ctx.fillText("1", padL-10, y1+3);
     ctx.fillStyle='#b06ae8'; ctx.fillText("thr", padL+plotW-24, yTh-3);
@@ -2766,9 +2843,13 @@ window.SASP.autocorr = autocorr;
     // Bottom: reassigned
     ctx.fillStyle='#0a0b0f'; ctx.fillRect(padL, botY, plotW, plotH);
     if(onChk.checked){
-      // Accumulator grid
-      const gridTFx = 1;
-      const gridFy = 1;
+      // Accumulate reassigned energy into a (frame x bin) grid before
+      // colouring. The previous version drew each (m,k)'s reassigned
+      // location as a 1.2-px square with alpha 0.8 -- so when many cells
+      // reassigned to the same (mHat, kHat) (which is exactly what
+      // happens around a true sinusoid), only the alpha-blended overlap
+      // showed and bright ridges looked thinner/dimmer than they should.
+      const acc = new Float32Array(nF * Kshow);
       for(let m=0;m<nF;m++){
         for(let k=0;k<Kshow;k++){
           const Xre = X.frames[m].re[k], Xim = X.frames[m].im[k];
@@ -2777,22 +2858,28 @@ window.SASP.autocorr = autocorr;
           // Xt/X real part gives time offset in samples
           const XtRe = Xt.frames[m].re[k], XtIm = Xt.frames[m].im[k];
           const tReNum = (XtRe*Xre + XtIm*Xim)/absX2;
-          // Xd/X imaginary part gives freq offset (neg)
+          // Xd/X imaginary part gives freq offset
           const XdRe = Xd.frames[m].re[k], XdIm = Xd.frames[m].im[k];
-          const wImNum = (XdIm*Xre - XdRe*Xim)/absX2; // Im{Xd/X}
-          // reassigned t in frame-centre samples
+          const wImNum = (XdIm*Xre - XdRe*Xim)/absX2;
           const tHat = m*Hop + (L-1)/2 + tReNum;
-          const omegaHat = (2*Math.PI*k/Nfft) - wImNum; // rad/sample
+          const omegaHat = (2*Math.PI*k/Nfft) - wImNum;
           const kHat = omegaHat * Nfft / (2*Math.PI);
           const mHat = tHat/Hop;
-          const x = padL + mHat*cw;
-          const y = botY + (1 - kHat/Kshow)*plotH;
-          if(x < padL || x > padL+plotW) continue;
-          if(y < botY || y > botY+plotH) continue;
-          const v = Math.max(0, Math.min(1, (20*Math.log10(Math.sqrt(absX2)/mx+1e-12)+60)/60));
+          const mG = Math.round(mHat), kG = Math.round(kHat);
+          if(mG < 0 || mG >= nF || kG < 0 || kG >= Kshow) continue;
+          acc[mG*Kshow + kG] += Math.sqrt(absX2);
+        }
+      }
+      let mxAcc = 1e-30;
+      for(let i=0;i<acc.length;i++) if(acc[i] > mxAcc) mxAcc = acc[i];
+      for(let m=0;m<nF;m++){
+        for(let k=0;k<Kshow;k++){
+          const a = acc[m*Kshow + k];
+          if(a <= 0) continue;
+          const v = Math.max(0, Math.min(1, (20*Math.log10(a/mxAcc+1e-12)+60)/60));
           const col = viridisLike(v);
-          ctx.fillStyle=`rgba(${col[0]|0},${col[1]|0},${col[2]|0},0.8)`;
-          ctx.fillRect(x-0.5, y-0.5, 1.2, 1.2);
+          ctx.fillStyle=`rgb(${col[0]|0},${col[1]|0},${col[2]|0})`;
+          ctx.fillRect(padL + m*cw, botY + (Kshow-1-k)*plotH/Kshow, Math.ceil(cw)+1, Math.ceil(plotH/Kshow)+1);
         }
       }
     } else {
@@ -2825,31 +2912,21 @@ window.SASP.autocorr = autocorr;
   const SR = 16000;
   let ctx=null, W=0, H=380;
 
-  // Direct CZT (not using the Bluestein trick; N is small enough)
+  // Direct CZT (not using the Bluestein trick; N is small enough).
+  // Hoist Ainv out of the k-loop and step Wk incrementally so the cost
+  // is O(M*N) instead of O(M^2*N) -- the previous version recomputed
+  // W^k from scratch per k, making slider drags noticeably laggy.
   function czt(x, M, W_ratio_re, W_ratio_im, A_start_re, A_start_im){
     const N = x.length;
     const Xr = new Float32Array(M), Xi = new Float32Array(M);
-    // Precompute A^-n and cumulative W^n in spiral form
+    const Amag2 = A_start_re*A_start_re + A_start_im*A_start_im;
+    const Ainv_re =  A_start_re / Amag2;
+    const Ainv_im = -A_start_im / Amag2;
+    let Wk_re = 1, Wk_im = 0; // W^k, updated each iteration
     for(let k=0;k<M;k++){
-      // Spiral point z_k = A * W^(-k)  for DFT-like form; but we use X_k = sum x[n] A^-n W^{nk}
+      const zr = Ainv_re*Wk_re - Ainv_im*Wk_im;
+      const zi = Ainv_re*Wk_im + Ainv_im*Wk_re;
       let sR = 0, sI = 0;
-      // spiral step for this k: A^-n * W^{nk} = (A^-1 * W^k)^n
-      // compute z = A^-1 * W^k
-      // A = Ar + j Ai
-      const Amag2 = A_start_re*A_start_re + A_start_im*A_start_im;
-      const Ainv_re = A_start_re / Amag2;
-      const Ainv_im = -A_start_im / Amag2;
-      // W^k
-      let Wk_re = 1, Wk_im = 0;
-      for(let i=0;i<k;i++){
-        const nr = Wk_re*W_ratio_re - Wk_im*W_ratio_im;
-        const ni = Wk_re*W_ratio_im + Wk_im*W_ratio_re;
-        Wk_re = nr; Wk_im = ni;
-      }
-      // z = Ainv * Wk
-      let zr = Ainv_re*Wk_re - Ainv_im*Wk_im;
-      let zi = Ainv_re*Wk_im + Ainv_im*Wk_re;
-      // accumulate sum x[n] * z^n
       let pr = 1, pi = 0;
       for(let n=0;n<N;n++){
         sR += x[n]*pr;
@@ -2859,6 +2936,9 @@ window.SASP.autocorr = autocorr;
         pr = nr; pi = ni;
       }
       Xr[k] = sR; Xi[k] = sI;
+      const nWr = Wk_re*W_ratio_re - Wk_im*W_ratio_im;
+      const nWi = Wk_re*W_ratio_im + Wk_im*W_ratio_re;
+      Wk_re = nWr; Wk_im = nWi;
     }
     return {re: Xr, im: Xi};
   }
@@ -2930,7 +3010,9 @@ window.SASP.autocorr = autocorr;
     ctx.arc(cxZ, cyZ, R, 0, 2*Math.PI); ctx.stroke();
     ctx.strokeStyle='#8a8d9a'; ctx.beginPath(); ctx.moveTo(leftX, cyZ); ctx.lineTo(leftX+leftW, cyZ); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(cxZ, leftY); ctx.lineTo(cxZ, leftY+leftH); ctx.stroke();
-    // Spiral
+    // Spiral. Clip to the z-plane box so it can't spill out at rad > 1.
+    ctx.save();
+    ctx.beginPath(); ctx.rect(leftX, leftY, leftW, leftH); ctx.clip();
     ctx.strokeStyle='#e8a44a'; ctx.lineWidth=1.8; ctx.beginPath();
     for(let k=0;k<M;k++){
       const theta = thetaLo + k*dTheta;
@@ -2940,6 +3022,7 @@ window.SASP.autocorr = autocorr;
       if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
     }
     ctx.stroke();
+    ctx.restore();
     ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace';
     ctx.fillText('z-plane', leftX+6, leftY+14);
 
@@ -2957,8 +3040,10 @@ window.SASP.autocorr = autocorr;
       ctx.strokeStyle='#1a1d2a'; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y); ctx.stroke();
       ctx.fillStyle='#8a8d9a'; ctx.fillText(String(g), padL-26, y+3);
     }
-    // Full DFT in blue, only span around [0, 4 kHz] for context
-    const fMax = 4000;
+    // Plot range: extend fMax to cover the whole CZT band so the orange
+    // curve can never vanish off the right edge of the plot. Snap to the
+    // next 1 kHz above fHi for tidy axis ticks.
+    const fMax = Math.max(4000, Math.ceil((fHi + 200)/1000)*1000);
     const Khi = Math.min(Nh-1, Math.floor(fMax*Nfft/SR));
     ctx.strokeStyle='#4a9de8'; ctx.lineWidth=1; ctx.beginPath();
     for(let k=0;k<Khi;k++){
@@ -3027,12 +3112,15 @@ window.SASP.autocorr = autocorr;
       let v = 0;
       for(let h=1;h<=30;h++){
         const fh = f0*h; if(fh > SR/2-50) break;
-        let w = 1/h;
+        // Parallel formant model (sum, not product) -- see ch6Demo
+        // vowelSig for the rationale; cascading three Lorentzians
+        // attenuates every harmonic by the off-formants.
+        let formant = 0;
         for(let i=0;i<3;i++){
           const d = (fh - forms[0][i])/forms[1][i];
-          w *= 1/(1 + d*d*0.6);
+          formant += 1/(1 + d*d*0.6);
         }
-        v += w*Math.sin(2*Math.PI*fh*t);
+        v += (formant/h)*Math.sin(2*Math.PI*fh*t);
       }
       out[n] = 0.3*v;
     }
@@ -3086,17 +3174,29 @@ window.SASP.autocorr = autocorr;
     ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(padL, padT, halfW, plotH);
     ctx.fillStyle='#8a8d9a'; ctx.font='10px "Lucida Console", monospace';
     ctx.fillText('reflection coefficients k_i', padL+4, padT+12);
-    // mid line
+    // mid line (k=0). Brighter than the box so it actually reads as an
+    // axis. Was '#1a1d2a' which is darker than the surrounding border.
     const midY = padT + plotH/2;
-    ctx.strokeStyle='#1a1d2a'; ctx.beginPath(); ctx.moveTo(padL, midY); ctx.lineTo(padL+halfW, midY); ctx.stroke();
+    ctx.strokeStyle='#3a3d4a'; ctx.beginPath(); ctx.moveTo(padL, midY); ctx.lineTo(padL+halfW, midY); ctx.stroke();
+    // |k|=1 stability bound -- dashed so the user can see when bars
+    // approach the boundary. Without a fixed axis the auto-rescaled
+    // bars made instability invisible.
+    ctx.strokeStyle='#5a4040'; ctx.setLineDash([3,3]);
+    ctx.beginPath();
+    ctx.moveTo(padL, midY - plotH/2*0.95); ctx.lineTo(padL+halfW, midY - plotH/2*0.95); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(padL, midY + plotH/2*0.95); ctx.lineTo(padL+halfW, midY + plotH/2*0.95); ctx.stroke();
+    ctx.setLineDash([]);
     const barW = halfW / (p+1);
-    let maxAbsK = 0;
-    for(let i=1;i<=p;i++) maxAbsK = Math.max(maxAbsK, Math.abs(ks[i]));
-    const scale = maxAbsK > 0.02 ? maxAbsK : 0.5;
+    // Fixed scale: |k|=1 maps to plotH/2*0.95 (just inside the dashed
+    // bound). Bars that exceed |k|=1 turn red and are clipped at the
+    // plot edge -- the visual overflow makes instability obvious.
+    const scale = 1;
     for(let i=1;i<=p;i++){
       const k = ks[i];
       const x0 = padL + i*barW;
-      const h = Math.min(plotH/2-2, (Math.abs(k)/scale)*plotH/2*0.95);
+      const hRaw = (Math.abs(k)/scale)*plotH/2*0.95;
+      const h = Math.min(plotH/2-2, hRaw);
       ctx.fillStyle = (Math.abs(k) < 1) ? '#5ce89a' : '#e85a7a';
       if(k >= 0) ctx.fillRect(x0 + 2, midY - h, barW-4, h);
       else ctx.fillRect(x0 + 2, midY, barW-4, h);
@@ -3105,15 +3205,22 @@ window.SASP.autocorr = autocorr;
     ctx.fillStyle='#8a8d9a';
     ctx.fillText('i = 1..' + p, padL+4, Hgt-6);
 
-    // Right: E_i (dB) vs i
+    // Right: E_i (dB) vs i. Floor E[i] at 1e-6 * E[0] so the curve has a
+    // sensible dynamic range -- otherwise a near-zero residual at high p
+    // pulls Emn to -300 dB and squashes the entire curve into one pixel.
     const rx0 = padL + halfW + gap;
     ctx.strokeStyle='#2a2d3a'; ctx.strokeRect(rx0, padT, halfW, plotH);
     ctx.fillStyle='#8a8d9a'; ctx.fillText('log E_i (prediction-error power)', rx0+4, padT+12);
-    // dB scale
+    const Efloor = Math.max(1e-30, E[0]) * 1e-6;
     const Edb = new Float64Array(p+1);
     let Emx = -Infinity, Emn = Infinity;
-    for(let i=0;i<=p;i++){ Edb[i] = 10*Math.log10(Math.max(1e-30, E[i])); if(Edb[i]>Emx) Emx=Edb[i]; if(Edb[i]<Emn) Emn=Edb[i]; }
+    for(let i=0;i<=p;i++){
+      Edb[i] = 10*Math.log10(Math.max(Efloor, E[i]));
+      if(Edb[i]>Emx) Emx=Edb[i]; if(Edb[i]<Emn) Emn=Edb[i];
+    }
     const rng = Math.max(1, Emx - Emn);
+    // Clip so any out-of-range values stay inside the box.
+    ctx.save(); ctx.beginPath(); ctx.rect(rx0, padT, halfW, plotH); ctx.clip();
     ctx.strokeStyle='#4a9de8'; ctx.lineWidth=1.5; ctx.beginPath();
     for(let i=0;i<=p;i++){
       const x0 = rx0 + (i/p)*halfW;
@@ -3121,13 +3228,13 @@ window.SASP.autocorr = autocorr;
       if(i===0) ctx.moveTo(x0,y); else ctx.lineTo(x0,y);
     }
     ctx.stroke();
-    // dots
     ctx.fillStyle='#e8a44a';
     for(let i=0;i<=p;i++){
       const x0 = rx0 + (i/p)*halfW;
       const y = padT + (1 - (Edb[i]-Emn)/rng)*plotH;
       ctx.beginPath(); ctx.arc(x0,y,2.2,0,2*Math.PI); ctx.fill();
     }
+    ctx.restore();
     ctx.fillStyle='#8a8d9a'; ctx.fillText('i = 0..' + p, rx0+4, Hgt-6);
 
     const maxK = Math.max(...Array.from(ks.slice(1)).map(v=>Math.abs(v)));
